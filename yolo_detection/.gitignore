@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Wirtualne środowiska
+.venv/
+venv/
+env/
+ENV/
+
+# Sekrety i ustawienia lokalne
+.env
+.env.*
+!.env.example
+
+# Systemy operacyjne / edytory
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logi
+*.log
+
+# Cache YOLO / dane tymczasowe
+*.cache
+
+# Wyniki treningu i predykcji (dużo plików i duże rozmiary)
+runs/
+wandb/
+mlruns/
+
+# Domyślnie ignoruj obrazy i etykiety datasetu,
+# żeby przypadkiem nie wrzucać dużych lub prywatnych danych.
+# Usuń # z poniższych reguł, jeśli chcesz wersjonować dataset.
+dataset/images/
+dataset/labels/
+
+# Modele treningowe są duże; nie wrzucaj ich przypadkiem do Git.
+*.pt
+*.onnx
+*.engine
+*.torchscript
+*.weights
+
+# Opcjonalnie: jeśli chcesz dołączyć wytrenowany model do repozytorium,
+# usuń regułę *.pt i dodaj wyjątek dla konkretnego pliku, np.:
+# !models/best.pt

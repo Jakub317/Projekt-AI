@@ -1,0 +1,4 @@
+ultralytics
+pandas
+matplotlib
+pyyaml

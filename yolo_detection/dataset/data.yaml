@@ -1,7 +1,8 @@
-path: C:/Users/koxku/Desktop/studia/Projekt AI/yolo_kartki_start/dataset
+path: C:\Users\user\Desktop\Projekt-AI\yolo_detection\dataset\
 
 train: images/train
 val: images/val
 
 names:
   0: kartka
+  1: polka

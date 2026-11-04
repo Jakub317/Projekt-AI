@@ -1,4 +1,4 @@
-path: C:/Users/koxku/Desktop/studia/Projekt AI/yolo_kartki_start/dataset
+#path: C:/Users/koxku/Desktop/studia/Projekt AI/yolo_kartki_start/dataset
 
 train: images/train
 val: images/val

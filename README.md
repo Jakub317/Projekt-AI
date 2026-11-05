@@ -1,4 +1,6 @@
-#  Projekt AI – Wykrywanie Kartek z Obrazów i Wideo
+https://drive.google.com/file/d/1em4WpEfoIP9CbXEdOmGzWCyi2ebwGLTm/view?usp=sharing
+
+Projekt AI – Wykrywanie Kartek z Obrazów i Wideo
 
 Projekt oparty na sztucznej inteligencji (Computer Vision), służący do automatycznego wykrywania i analizowania kartek papieru z plików graficznych oraz materiałów wideo.
 

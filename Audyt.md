@@ -20,6 +20,7 @@ Przez brak dostarczenia modelu sztucznej inteligencji,można zobaczyć wyniki do
 Model korzysta ze zdjęć kartek i półek z oznaczonymi obiektami, niestety obejmuje tylko 9 unikalnych zdjęć, a walidacja nie zawiera oznaczeń klasy „półka”. - Rozwiązanie: Zebrać bardziej różnorodne zdjęcia, ujednolicić oznaczenia i utworzyć rozłączne zbiory treningowy, walidacyjny i testowy.
 
 6-- UX i Wizualizacja
+    User expirence nie istnieje, aplikacja jest rozbita i nie da się jej uruchomić korzystając z polecen podanych w README.md. Nie ma żadnych wyników końcowych gdyż aplikacja nie jest możliwa do uruchomienia.
 
 7-- Dokumentacja
     

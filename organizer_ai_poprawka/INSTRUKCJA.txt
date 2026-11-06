@@ -1,0 +1,24 @@
+POPRAWKA ORGANIZER AI
+
+W archiwum są pliki do podmiany:
+- app.py
+- templates/index.html
+- static/app.js
+- static/style.css
+
+Zrób kopię zapasową obecnych plików, a następnie podmień je w projekcie,
+zachowując dokładnie powyższą strukturę folderów.
+
+Pozostałe foldery projektu (w szczególności scripts/, model/, videos/)
+pozostają bez zmian.
+
+Po podmianie:
+1. Zatrzymaj działający serwer Flask.
+2. Podmień pliki.
+3. Uruchom ponownie aplikację.
+4. Otwórz stronę i wykonaj analizę ponownie.
+
+WAŻNE:
+Statusy przegródek są odtwarzane z ostatniego zdarzenia w raport.csv.
+Przegródki bez zdarzeń pokazują „Brak danych”, ponieważ sam raport zdarzeń
+nie zawiera informacji o stanie początkowym tych przegródek.

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pl">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap"
+        rel="stylesheet">
+    <title>Omnipost</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <aside class="side">
+        <div class="logo">O <b>Omnipost</b></div>
+        <p>LOKALNY PANEL</p><a href="#overview">Przegląd</a><a href="#analysis">Analiza nagrania</a><a
+            href="#slots">Przegródki</a><a href="#history">Historia zdarzeń</a>
+        <div class="sidebottom">● Aplikacja lokalna</div>
+    </aside>
+    <main>
+        <header>
+            <div><small>SYSTEM WYKRYWANIA KARTEK</small>
+                <h1>Panel główny</h1>
+            </div><span class="pill">● Tylko ten komputer</span>
+        </header>
+        <section id="overview" class="stats">
+            <article><small>Monitorowane przegródki</small><strong>8</strong><span>Stałe obszary analizy</span>
+            </article>
+            <article><small>Model YOLO</small><strong class="{{ 'ok' if model_ready else 'warn' }}">{{ 'Gotowy' if
+                    model_ready else 'Brak best.pt' }}</strong><span>model/best.pt</span></article>
+            <article><small>Stan analizy</small><strong id="status-short">Oczekiwanie</strong><span
+                    id="status-message">Wybierz nagranie</span></article>
+        </section>
+        <section id="analysis" class="panel">
+            <div class="heading">
+                <div><small>PRZETWARZANIE</small>
+                    <h2>Analiza nagrania</h2>
+                    <p>Wybierz film z półką i uruchom wykrywanie zmian.</p>
+                </div><span class="tag">OpenCV + YOLO</span>
+            </div>
+            <form id="form"><label class="drop" for="video"><b class="upload">↑</b><strong>Wybierz nagranie z
+                        dysku</strong><span>MP4, AVI, MOV lub MKV</span><input id="video" name="video" type="file"
+                        accept="video/*,.mkv" required></label>
+                <div id="filename" class="filename">Nie wybrano pliku</div><button id="start" {% if not model_ready
+                    %}disabled{% endif %}>▶ Rozpocznij analizę</button>
+            </form>{% if not model_ready %}<div class="warningbox">Skopiuj swoje wagi <code>best.pt</code> do folderu
+                <code>model</code>, aby uruchomić analizę.
+            </div>{% endif %}<div id="progress" class="progress">
+                <div class="progressline"><b id="progress-title">Przygotowywanie…</b><b id="percent">0%</b></div>
+                <div class="bar"><i id="bar"></i></div>
+                <p id="message">Oczekiwanie.</p>
+                <pre id="error"></pre>
+            </div>
+        </section>
+        <section id="slots" class="panel">
+            <div class="heading">
+                <div><small>PODGLĄD STANU</small>
+                    <h2>Przegródki</h2>
+                    <p>Osiem stałych obszarów rozpoznawania.</p>
+                </div>
+            </div>
+            <div class="slots" id="slots-grid">
+                {% for n in range(1,9) %}
+                <article class="slot-card slot-unknown">
+                    <b class="slot-number">{{ '%02d'|format(n) }}</b>
+                    <strong>Przegródka {{ n }}</strong>
+                    <span class="slot-status">Brak danych</span>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        <section id="result" class="panel" hidden>
+            <div class="heading">
+                <div><small>WYNIK</small>
+                    <h2>Film po analizie</h2>
+                </div><a id="report" href="#" download>Pobierz raport CSV ↓</a>
+            </div><video id="video-result" controls></video>
+        </section>
+        <section id="history" class="panel">
+            <div class="heading">
+                <div><small>REJESTR</small>
+                    <h2>Historia zdarzeń</h2>
+                    <p>Zmiany wykryte w ostatnim nagraniu.</p>
+                </div><span id="count" class="tag">0 zdarzeń</span>
+            </div>
+            <div class="tablewrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Czas filmu</th>
+                            <th>Przegródka</th>
+                            <th>Zdarzenie</th>
+                        </tr>
+                    </thead>
+                    <tbody id="events">
+                        <tr>
+                            <td colspan="3" class="empty">Brak zdarzeń. Uruchom analizę nagrania.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <footer>Omnipost · Lokalna aplikacja do analizy zawartości przegródek</footer>
+    </main>
+    <script src="/static/app.js"></script>
+</body>
+
+</html>

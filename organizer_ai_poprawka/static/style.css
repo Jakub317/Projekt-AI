@@ -1,0 +1,527 @@
+
+/* =========================================
+   1. USTAWIENIA GLOBALNE
+========================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --background: #f3f5f9;
+    --surface: #ffffff;
+    --text: #182238;
+    --muted: #7c879a;
+    --border: #e6eaf1;
+    --primary: #4569df;
+    --sidebar: #172137;
+
+    --slot-background: #20242b;
+    --slot-text: #f5f5f5;
+    --slot-muted: #aeb8c7;
+
+    --occupied: #35d58a;
+    --occupied-border: #269b65;
+
+    --empty: #78adff;
+    --empty-border: #548bd8;
+
+    --unknown: #b8c0cc;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+    font: 14px "Google Sans", sans-serif;
+}
+
+
+/* =========================================
+   2. PANEL BOCZNY
+========================================= */
+
+.side {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 225px;
+    background: var(--sidebar);
+    color: #fff;
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo {
+    font-size: 19px;
+    font-weight: bold;
+    margin-bottom: 42px;
+}
+
+.logo:first-letter {
+    color: #8ba5ff;
+}
+
+.side p,
+header small,
+.heading small {
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    color: #929db2;
+    font-weight: bold;
+}
+
+.side a {
+    color: #c4ccda;
+    text-decoration: none;
+    padding: 13px 10px;
+    border-radius: 8px;
+    margin: 3px 0;
+}
+
+.side a:hover {
+    background: #2a3958;
+    color: #fff;
+}
+
+.sidebottom {
+    margin-top: auto;
+    color: #aab5c8;
+    font-size: 12px;
+}
+
+
+/* =========================================
+   3. GŁÓWNA ZAWARTOŚĆ
+========================================= */
+
+main {
+    max-width: 1250px;
+    margin-left: 225px;
+    padding: 32px 40px;
+}
+
+header,
+.heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+}
+
+h1 {
+    font-size: 29px;
+    margin: 7px 0 24px;
+}
+
+h2 {
+    font-size: 19px;
+    margin: 5px 0;
+}
+
+p {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.pill,
+.tag {
+    background: #e9f0ff;
+    color: #4964c2;
+    border-radius: 30px;
+    padding: 9px 13px;
+    font-size: 11px;
+}
+
+
+/* =========================================
+   4. KARTY STATYSTYK
+========================================= */
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 17px;
+}
+
+.stats article,
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    box-shadow: 0 5px 22px #1b31500a;
+}
+
+.stats article {
+    padding: 18px;
+}
+
+.stats small,
+.stats span {
+    display: block;
+    color: #8590a2;
+    font-size: 11px;
+}
+
+.stats strong {
+    display: block;
+    font-size: 25px;
+    margin: 10px 0 3px;
+}
+
+.stats strong.ok {
+    font-size: 18px;
+    color: #16815d;
+}
+
+.stats strong.warn {
+    font-size: 18px;
+    color: #b77c20;
+}
+
+
+/* =========================================
+   5. SEKCJE I PANELE
+========================================= */
+
+.panel {
+    padding: 23px;
+    margin-bottom: 16px;
+}
+
+.heading {
+    margin-bottom: 18px;
+}
+
+
+/* =========================================
+   6. FORMULARZ WYBORU FILMU
+========================================= */
+
+.drop {
+    border: 2px dashed #cbd4e5;
+    border-radius: 12px;
+    min-height: 155px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    background: #fafbfe;
+    cursor: pointer;
+}
+
+.drop:hover {
+    border-color: #5275e8;
+}
+
+.upload {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: #eaf0ff;
+    color: #496ce0;
+    font-size: 25px;
+}
+
+.drop span,
+.filename {
+    font-size: 11px;
+    color: #8994a6;
+}
+
+.drop input {
+    display: none;
+}
+
+.filename {
+    padding: 10px 0;
+}
+
+button {
+    background: var(--primary);
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.warningbox {
+    margin-top: 14px;
+    padding: 12px;
+    background: #fff7e7;
+    color: #8f671e;
+    border-radius: 8px;
+    font-size: 11px;
+}
+
+
+/* =========================================
+   7. POSTĘP ANALIZY
+========================================= */
+
+.progress {
+    display: none;
+    background: #f8faff;
+    padding: 14px;
+    border-radius: 9px;
+    margin-top: 17px;
+}
+
+.progress.visible {
+    display: block;
+}
+
+.progressline {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.progressline b:last-child {
+    color: var(--primary);
+}
+
+.bar {
+    height: 7px;
+    background: #e2e8f4;
+    border-radius: 8px;
+    margin: 10px 0;
+    overflow: hidden;
+}
+
+.bar i {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--primary);
+    transition: width .3s;
+}
+
+.progress p {
+    margin: 0;
+}
+
+.progress pre {
+    white-space: pre-wrap;
+    color: #a23;
+    font-size: 11px;
+}
+
+
+/* =========================================
+   8. PODGLĄD 8 PRZEGRÓDEK
+========================================= */
+
+.slots {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.slots .slot-card {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 20px;
+    min-width: 0;
+
+    background: var(--slot-background);
+    color: var(--slot-text);
+
+    border: 1px solid #454b55;
+    border-radius: 14px;
+
+    opacity: 1;
+}
+
+.slots .slot-number {
+    color: var(--slot-muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.slots .slot-card strong {
+    color: var(--slot-text);
+    font-size: 15px;
+}
+
+.slots .slot-status {
+    color: var(--unknown);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Przegródka zajęta */
+
+.slots .slot-card.slot-occupied {
+    border-color: var(--occupied-border);
+}
+
+.slots .slot-card.slot-occupied .slot-status {
+    color: var(--occupied);
+}
+
+/* Przegródka pusta */
+
+.slots .slot-card.slot-empty {
+    border-color: var(--empty-border);
+}
+
+.slots .slot-card.slot-empty .slot-status {
+    color: var(--empty);
+}
+
+/* Brak danych */
+
+.slots .slot-card.slot-unknown {
+    border-color: #454b55;
+}
+
+.slots .slot-card.slot-unknown .slot-status {
+    color: var(--unknown);
+}
+
+
+/* =========================================
+   9. WYNIK ANALIZY I WIDEO
+========================================= */
+
+.hint {
+    font-size: 10px;
+}
+
+video {
+    width: 100%;
+    max-height: 500px;
+    background: #111;
+    border-radius: 8px;
+}
+
+#report {
+    font-size: 11px;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+
+/* =========================================
+   10. HISTORIA ZDARZEŃ
+========================================= */
+
+.tablewrap {
+    overflow: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    text-align: left;
+}
+
+th,
+td {
+    padding: 12px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+th {
+    color: #929caf;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.empty {
+    text-align: center;
+    color: #9aa4b5;
+}
+
+
+/* =========================================
+   11. STOPKA
+========================================= */
+
+footer {
+    text-align: center;
+    color: #a4adba;
+    font-size: 10px;
+    padding: 12px;
+}
+
+
+/* =========================================
+   12. RESPONSYWNOŚĆ
+========================================= */
+
+@media (max-width: 800px) {
+
+    .side {
+        position: static;
+        width: auto;
+        padding: 14px;
+        display: block;
+    }
+
+    .logo {
+        margin: 0 0 12px;
+    }
+
+    .side a {
+        display: inline-block;
+        padding: 8px;
+    }
+
+    .sidebottom {
+        display: none;
+    }
+
+    main {
+        margin: 0;
+        padding: 20px;
+    }
+
+    .stats {
+        grid-template-columns: 1fr;
+    }
+
+    header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .slots {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 450px) {
+
+    main {
+        padding: 14px;
+    }
+
+    .panel {
+        padding: 16px;
+    }
+
+    .slots {
+        grid-template-columns: 1fr;
+    }
+
+    .heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

@@ -16,15 +16,12 @@ Projekt łączy systemy wizyjne (Computer Vision) oraz sztuczną inteligencję w
 
 ### 1. Monitoring Uporządkowany (Regał Biurowy)
 
-![Regał Biurowy](docs/images/ai1.jpg)
 
 ### 2. Zarządzanie Chaosem (Model Grecki / Sterta)
 
-![Model Grecki](docs/images/ai2.jpg)
 
 ### 3. Interfejs Operacyjny i Analityka (Kokpit VPS)
 
-![Kokpit Systemu](docs/images/ai3.jpg)
 
 ---
 

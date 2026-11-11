@@ -1,0 +1,34 @@
+version: '3.9'
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: omnipost_portal
+      MARIADB_USER: omniportal
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+
+  yolo-service:
+    build: ./yolo-service
+    ports:
+      - "9000:9000"
+
+  web:
+    build: ./portal
+    command: >
+      sh -c "python manage.py migrate &&
+             gunicorn --bind 0.0.0.0:8000 portalconfig.wsgi:application"
+    volumes:
+      - ./portal/uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - yolo-service
+    env_file:
+      - .env
+
+volumes:
+  db_data:

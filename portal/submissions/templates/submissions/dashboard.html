@@ -1,0 +1,42 @@
+{% extends "submissions/base.html" %}
+{% block title %}Panel — Portal OmniPost{% endblock %}
+{% block content %}
+<div class="card" style="border: 2px solid #1f3a5f; background: #f0f4f8;">
+  <h2>Trening nowego modelu YOLO</h2>
+  <p class="muted">Uruchom trening na zbiorze danych projektu. Proces działa w tle (może zająć kilka godzin).</p>
+  <form method="post" action="{% url 'submissions:start_training' %}">
+    {% csrf_token %}
+    <label>Liczba epok: <input type="number" name="epochs" value="10" min="1" max="100"></label>
+    <button type="submit" style="background:#c90; color:white;">Uruchom trening</button>
+  </form>
+</div>
+<div class="card">
+  <h2>Prześlij materiał</h2>
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Prześlij</button>
+  </form>
+  <p class="muted">Limit: 100 MB. Typ pliku musi pasować do wybranej kategorii.</p>
+</div>
+
+<div class="card">
+  <h2>Twoje materiały ({{ materials|length }})</h2>
+  {% if materials %}
+    <table>
+      <tr><th>Plik</th><th>Typ</th><th>Status</th><th>Data</th><th></th></tr>
+      {% for m in materials %}
+        <tr>
+          <td>{{ m.original_name }}</td>
+          <td>{{ m.get_material_type_display }}</td>
+          <td>{{ m.get_status_display }}</td>
+          <td>{{ m.uploaded_at|date:"Y-m-d H:i" }}</td>
+          <td><a href="{% url 'submissions:download' m.pk %}">Pobierz</a></td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="muted">Brak przesłanych materiałów.</p>
+  {% endif %}
+</div>
+{% endblock %}

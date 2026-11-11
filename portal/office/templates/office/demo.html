@@ -1,0 +1,272 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Demo biura — OmniPost</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#f5f5f5;margin:0;color:#222}
+header{background:#1f3a5f;color:#fff;padding:.8rem 1.5rem}
+main{max-width:1100px;margin:1.5rem auto;padding:0 1rem}
+.card{background:#fff;border-radius:6px;padding:1rem 1.2rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.4rem;border-bottom:1px solid #ddd}
+.stats span{display:inline-block;margin-right:1rem;padding:.3rem .6rem;border-radius:4px;color:#fff}
+.s-total{background:#1f3a5f}.s-pending{background:#c90}.s-delivered{background:#2a2}.s-overdue{background:#c22}
+
+.tabs{display:flex;gap:5px;margin-bottom:1rem;flex-wrap:wrap}
+.tab-btn{padding:10px 20px;background:#e0e0e0;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-weight:bold;color:#555;font-size:1rem}
+.tab-btn.active{background:#1f3a5f;color:white}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Style dla predykcji */
+.prediction-card { background: #fff; border-left: 6px solid #ccc; border-radius: 4px; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.pred-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin-bottom: 0.5rem; }
+.pred-name { font-size: 1.2rem; font-weight: bold; color: #1f3a5f; }
+.pred-risk { padding: 4px 12px; border-radius: 15px; color: white; font-weight: bold; font-size: 0.85rem; }
+.pred-metrics { display: flex; gap: 2rem; font-size: 0.95rem; margin-bottom: 0.5rem; }
+.pred-metric { text-align: center; }
+.pred-metric strong { display: block; font-size: 1.3rem; color: #222; }
+.pred-metric span { font-size: 0.8rem; color: #666; }
+.pred-alert { background: #ffebee; color: #c22; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem; font-weight: bold; margin-top: 0.5rem; }
+
+.sim-container{display:flex;justify-content:space-between;align-items:center;background:#eef2f5;padding:2rem;border-radius:10px;position:relative;overflow:hidden;min-height:300px}
+.shelf-visual{width:200px;height:150px;background:#8b5a2b;border-radius:5px;position:relative;display:flex;align-items:flex-end;padding:10px;box-shadow:inset 0 -10px 0 #5c3a1a}
+.paper{width:40px;height:50px;background:white;position:absolute;left:20px;bottom:10px;border:1px solid #ccc;box-shadow:2px 2px 5px rgba(0,0,0,0.2);transition:all 1.5s ease-in-out;z-index:10}
+.paper.flying{left:60%;bottom:80%;transform:rotate(45deg) scale(1.5);opacity:0}
+.phone-mockup{width:220px;height:400px;background:#111;border-radius:30px;border:6px solid #333;padding:15px 10px;box-sizing:border-box;box-shadow:0 10px 20px rgba(0,0,0,0.3);z-index:20}
+.phone-screen{width:100%;height:100%;background:#fff;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.phone-header{background:#f8f8f8;padding:10px;text-align:center;font-size:0.8rem;color:#666;border-bottom:1px solid #ddd}
+.sms-bubble{background:#007aff;color:white;padding:10px 15px;border-radius:20px 20px 0 20px;margin:15px;font-size:0.85rem;position:absolute;bottom:20px;right:10px;left:10px;box-shadow:0 3px 10px rgba(0,122,255,0.3);transform:translateY(100px);opacity:0;transition:all 0.5s cubic-bezier(0.175,0.885,0.32,1.275)}
+.sms-bubble.show{transform:translateY(0);opacity:1}
+.btn-simulate{padding:12px 24px;background:#c90;color:white;border:none;border-radius:25px;font-size:1.1rem;cursor:pointer;box-shadow:0 4px 6px rgba(0,0,0,0.1)}
+.btn-simulate:hover{transform:translateY(-2px);background:#e6a800}
+
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.photo-card{border:1px solid #ddd;border-radius:6px;padding:.5rem;background:#fafafa}
+.photo-wrap{position:relative;display:block;width:100%;overflow:hidden;border-radius:4px;background:#eee}
+.photo-wrap img{width:100%;display:block;height:auto}
+.frame{position:absolute;border:2px solid #ff596b;background:rgba(255,89,107,.15);pointer-events:none;box-sizing:border-box}
+.photo-meta{font-size:.8rem;color:#666;margin-top:.4rem}
+.letter-row{cursor:pointer;transition:background 0.15s}
+.letter-row:hover{background:#eef2f5}
+
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal-window{background:#fff;border-radius:10px;max-width:560px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.5rem;background:#1f3a5f;color:white;border-radius:10px 10px 0 0}
+.modal-close{background:none;border:none;color:white;font-size:1.6rem;cursor:pointer;line-height:1}
+.modal-body{padding:1.5rem}
+.document-paper{background:#fdfaf3;border:2px solid #d0c8b8;padding:1.5rem;position:relative;border-radius:4px;box-shadow:inset 0 0 30px rgba(0,0,0,0.06);font-family:Georgia,serif}
+.doc-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1f3a5f;padding-bottom:0.6rem;margin-bottom:1rem}
+.doc-logo{font-size:2rem}
+.doc-ref{font-family:monospace;color:#1f3a5f;font-weight:bold;font-size:0.9rem}
+.doc-row{padding:0.45rem 0;border-bottom:1px dashed #ddd;font-size:0.95rem}
+.doc-label{font-weight:bold;color:#555;display:inline-block;min-width:150px}
+.doc-desc{margin-top:1rem;padding:0.8rem;background:#fff;border-left:4px solid #1f3a5f;font-style:italic;color:#333}
+.doc-stamp{position:absolute;top:15px;right:15px;padding:6px 14px;border:3px solid #c90;color:#c90;font-weight:bold;transform:rotate(12deg);font-size:1rem;opacity:0.85;font-family:sans-serif}
+.doc-stamp.overdue{border-color:#c22;color:#c22}
+.doc-stamp.delivered{border-color:#2a2;color:#2a2}
+.modal-footer{padding:1rem 1.5rem;border-top:1px solid #ddd;text-align:right}
+.btn-close{padding:8px 22px;background:#1f3a5f;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.95rem}
+.empty{color:#666;font-style:italic}
+</style></head><body>
+<header><strong>Portal OmniPost</strong> — <a href="/omnipost/" style="color:#fff">← demo</a></header>
+<main>
+
+<div class="card">
+  <h2>Stan systemu</h2>
+  <p class="stats">
+    <span class="s-total">Wszystkie pisma: {{ stats.total }}</span>
+    <span class="s-pending">Oczekuje: {{ stats.pending }}</span>
+    <span class="s-delivered">Odebrane: {{ stats.delivered }}</span>
+    <span class="s-overdue">Przeterminowane: {{ stats.overdue }}</span>
+  </p>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="openTab(event, 'tab-sim')">🎮 Symulacja</button>
+  <button class="tab-btn" onclick="openTab(event, 'tab-predictions')">📊 Predykcje AI</button>
+  <button class="tab-btn" onclick="openTab(event, 'tab-gallery')">🖼️ Galeria ({{ all_photos|length }})</button>
+  <button class="tab-btn" onclick="openTab(event, 'tab-letters')">📄 Pisma ({{ letters|length }})</button>
+  <button class="tab-btn" onclick="openTab(event, 'tab-sms')">📱 SMS ({{ notifications|length }})</button>
+  <button class="tab-btn" onclick="openTab(event, 'tab-staff')">👥 Pracownicy ({{ recipients|length }})</button>
+</div>
+
+<!-- SYMULACJA -->
+<div id="tab-sim" class="tab-content active">
+  <div class="card">
+    <h2>Symulacja dostarczenia (SMS)</h2>
+    <p style="color:#666;">Kliknij przycisk, aby zasymulować wykrycie pisma. System zapisze je w bazie i wyśle SMS do pracownika.</p>
+    <div class="sim-container">
+      <div class="shelf-visual"><div class="paper" id="paper-anim"></div></div>
+      <div><button class="btn-simulate" id="simulate-btn">Skanuj półkę i wyślij SMS</button></div>
+      <div class="phone-mockup">
+        <div class="phone-screen">
+          <div class="phone-header">Wiadomości</div>
+          <div class="sms-bubble" id="sms-bubble">
+            <strong id="sms-recipient">Pracownik</strong><br><span id="sms-content">Treść</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PREDYKCJE -->
+<div id="tab-predictions" class="tab-content">
+  <div class="card">
+    <h2>📊 Predykcja ryzyka i punktualności pracowników</h2>
+    <p style="color:#666;">System analizuje historyczne dane z bazy i przewiduje, które osoby mogą spóźnić się z odbiorem pism. Im niższy wskaźnik niezawodności, tym większe ryzyko opóźnień.</p>
+    
+    {% for p in predictions %}
+    <div class="prediction-card" style="border-left-color: {{ p.risk_color }};">
+      <div class="pred-header">
+        <div class="pred-name">👤 {{ p.name }}</div>
+        <div class="pred-risk" style="background: {{ p.risk_color }};">Ryzyko: {{ p.risk_level }}</div>
+      </div>
+      <div class="pred-metrics">
+        <div class="pred-metric"><strong>{{ p.reliability }}%</strong><span>Indeks punktualności</span></div>
+        <div class="pred-metric"><strong>{{ p.total }}</strong><span>Pism łącznie</span></div>
+        <div class="pred-metric"><strong>{{ p.overdue }}</strong><span>Spóźnionych</span></div>
+        <div class="pred-metric"><strong>{{ p.avg_days }} dni</strong><span>Średni czas odbioru</span></div>
+      </div>
+      {% if p.late_pending > 0 %}
+      <div class="pred-alert">⚠️ OSTRZEŻENIE AI: Ze względu na dotychczasowe opóźnienia, {{ p.late_pending }} pism(o) może zostać odebranych po terminie!</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- GALERIA -->
+<div id="tab-gallery" class="tab-content">
+  <div class="card">
+    <h2>Galeria zdjęć półek</h2>
+    {% if all_photos %}
+      <div class="gallery">
+        {% for p in all_photos %}
+          <div class="photo-card">
+            <h3>{{ p.original_name }}</h3>
+            <div class="photo-wrap">
+              <img src="/omnipost-portal/office/photo/{{ p.pk }}/" alt="{{ p.original_name }}" loading="lazy">
+              {% if p.shelves.first %}
+                {% for f in p.shelves.first.frames.all %}
+                  <div class="frame" style="left:{{ f.x }}px;top:{{ f.y }}px;width:{{ f.w }}px;height:{{ f.h }}px;"></div>
+                {% endfor %}
+              {% endif %}
+            </div>
+            <div class="photo-meta">Status: {{ p.get_status_display }} | Autor: {{ p.uploaded_by.username }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}<p class="empty">Brak zdjęć.</p>{% endif %}
+  </div>
+</div>
+
+<!-- PISMA -->
+<div id="tab-letters" class="tab-content">
+  <div class="card">
+    <h2>Rejestr Pism <small style="color:#888;font-weight:normal;">(kliknij wiersz, aby zobaczyć szczegóły)</small></h2>
+    {% if letters %}
+      <table>
+        <tr><th>#</th><th>Półka</th><th>Odbiorca</th><th>Typ pisma</th><th>Termin</th><th>Status</th><th></th></tr>
+        {% for l in letters %}
+        <tr class="letter-row" data-id="{{ l.id }}" data-type="{{ l.document_type }}" data-desc="{{ l.description }}" data-recipient="{{ l.recipient }}" data-phone="{{ l.recipient.phone|default:'brak' }}" data-shelf="{{ l.frame.shelf.name }}" data-due="{{ l.due_date|date:'Y-m-d' }}" data-created="{{ l.created_at|date:'Y-m-d H:i' }}" data-status="{{ l.get_status_display }}" data-status-code="{{ l.status }}">
+          <td>{{ l.id }}</td><td>{{ l.frame.shelf.name }}</td><td>{{ l.recipient }}</td><td>{{ l.document_type }}</td><td>{{ l.due_date }}</td><td>{{ l.get_status_display }}</td><td style="color:#1f3a5f;font-size:1.2rem;">🔍</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% else %}<p class="empty">Brak pism.</p>{% endif %}
+  </div>
+</div>
+
+<!-- SMS -->
+<div id="tab-sms" class="tab-content">
+  <div class="card">
+    <h2>Symulowane powiadomienia SMS</h2>
+    {% if notifications %}
+      <table><tr><th>Data</th><th>Kanał</th><th>Treść wiadomości</th></tr>
+      {% for n in notifications %}<tr><td>{{ n.sent_at|date:"Y-m-d H:i" }}</td><td>{{ n.get_channel_display }}</td><td>{{ n.content }}</td></tr>{% endfor %}
+      </table>
+    {% else %}<p class="empty">Brak powiadomień.</p>{% endif %}
+  </div>
+</div>
+
+<!-- PRACOWNICY -->
+<div id="tab-staff" class="tab-content">
+  <div class="card">
+    <h2>Osoby odbierające</h2>
+    <table><tr><th>Imię i nazwisko</th><th>E-mail</th><th>Telefon</th></tr>
+    {% for r in recipients %}<tr><td>{{ r }}</td><td>{{ r.email }}</td><td>{{ r.phone }}</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+
+</main>
+
+<!-- MODAL: Szczegóły pisma -->
+<div id="letter-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal-window">
+    <div class="modal-header"><span id="modal-title" style="font-weight:bold;">Szczegóły pisma</span><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="document-paper">
+        <div class="doc-stamp" id="modal-stamp">OCZEKUJE</div>
+        <div class="doc-header"><div class="doc-logo">📄</div><div class="doc-ref" id="modal-ref">PISMO/2026/11/000</div></div>
+        <div class="doc-row"><span class="doc-label">Typ dokumentu:</span> <span id="modal-type">—</span></div>
+        <div class="doc-row"><span class="doc-label">Odbiorca:</span> <strong id="modal-recipient">—</strong></div>
+        <div class="doc-row"><span class="doc-label">Telefon:</span> <span id="modal-phone">—</span></div>
+        <div class="doc-row"><span class="doc-label">Lokalizacja:</span> <span id="modal-shelf">—</span></div>
+        <div class="doc-row"><span class="doc-label">Wystawiono:</span> <span id="modal-created">—</span></div>
+        <div class="doc-row"><span class="doc-label">Termin odbioru:</span> <strong id="modal-due">—</strong></div>
+        <div class="doc-desc" id="modal-desc">—</div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-close" onclick="closeModal()">Zamknij</button></div>
+  </div>
+</div>
+
+<script>
+function openTab(evt, tabName) {
+  document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabName).style.display = 'block';
+  evt.currentTarget.classList.add('active');
+}
+
+function openLetterModal(row) {
+  const d = row.dataset;
+  const year = d.created.substring(0,4), month = d.created.substring(5,7);
+  document.getElementById('modal-ref').innerText = 'PISMO/' + year + '/' + month + '/' + d.id.padStart(3,'0');
+  document.getElementById('modal-type').innerText = d.type || '—';
+  document.getElementById('modal-recipient').innerText = d.recipient || '—';
+  document.getElementById('modal-phone').innerText = d.phone || 'brak';
+  document.getElementById('modal-shelf').innerText = d.shelf || '—';
+  document.getElementById('modal-created').innerText = d.created || '—';
+  document.getElementById('modal-due').innerText = d.due || '—';
+  document.getElementById('modal-desc').innerText = d.desc || 'Brak dodatkowego opisu.';
+  const stamp = document.getElementById('modal-stamp');
+  stamp.innerText = d.status;
+  stamp.className = 'doc-stamp';
+  if (d.statusCode === 'overdue') stamp.classList.add('overdue');
+  if (d.statusCode === 'delivered') stamp.classList.add('delivered');
+  document.getElementById('letter-modal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('letter-modal').style.display = 'none'; }
+
+document.querySelectorAll('.letter-row').forEach(row => { row.addEventListener('click', () => openLetterModal(row)); });
+
+document.getElementById('simulate-btn').addEventListener('click', function() {
+  const btn = this, paper = document.getElementById('paper-anim'), bubble = document.getElementById('sms-bubble');
+  const recipient = document.getElementById('sms-recipient'), content = document.getElementById('sms-content');
+  paper.classList.remove('flying'); bubble.classList.remove('show'); btn.innerText = "Skanowanie..."; btn.disabled = true;
+  fetch('/omnipost-portal/office/api/simulate-sms/', { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { alert(data.error); btn.innerText = "Skanuj"; btn.disabled = false; return; }
+      paper.classList.add('flying');
+      setTimeout(() => {
+        recipient.innerText = data.recipient; content.innerText = data.content; bubble.classList.add('show');
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        btn.innerText = "Wyślij kolejny SMS"; btn.disabled = false;
+        setTimeout(() => location.reload(), 4000);
+      }, 1500);
+    })
+    .catch(err => { console.error(err); btn.innerText = "Błąd."; btn.disabled = false; });
+});
+</script>
+</body></html>

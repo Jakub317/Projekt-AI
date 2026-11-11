@@ -120,34 +120,48 @@ def api_simulate_sms(request):
             return JsonResponse({"error": "Brak pracowników w bazie"}, status=400)
             
         recipient = random.choice(recipients)
-        shelf = Shelf.objects.order_by("?").first()
+        # Bierzemy najnowsze zdjęcie z bazy
+        photo = UploadedMaterial.objects.filter(material_type="photo").order_by("-uploaded_at").first()
         
-        # Tworzymy pismo (jeśli mamy półkę)
         due_date = timezone.localdate() + datetime.timedelta(days=7)
-        if shelf:
+        
+        # Uruchamiamy PRAWDZIWE YOLO na zdjęciu!
+        frames_data = []
+        if photo:
+            frames_data = detect_frames(photo)
+            
+        if not frames_data:
+            # Jeśli YOLO nic nie wykryło, tworzymy jedno awaryjne pismo
+            frames_data = [{"x": 10, "y": 10, "w": 50, "h": 50, "confidence": 0.5}]
+
+        shelf = photo.shelves.first() if photo and photo.shelves.exists() else None
+        if not shelf:
+            shelf = Shelf.objects.first()
+        if not shelf:
+            shelf = Shelf.objects.create(name="Główna Półka", location="Biuro")
+
+        for f in frames_data:
             frame = DetectedFrame.objects.create(
-                shelf=shelf, frame_index=99, 
-                x=random.randint(0,100), y=random.randint(0,100), 
-                w=50, h=50, confidence=0.99
+                shelf=shelf, frame_index=random.randint(1,99), 
+                x=f["x"], y=f["y"], w=f["w"], h=f["h"], confidence=f["confidence"]
             )
+            
             doc_types = ["Pismo urzędowe", "Faktura VAT", "Korespondencja", "Paczka kurierska", "Pismo sądowe"]
             descs = ["Wezwanie do zapłaty zaległości.", "Faktura za usługi za poprzedni miesiąc.", "Umowa ramowa do podpisania.", "Wymagane potwierdzenie odbioru.", "Zawiadomienie o terminie rozprawy."]
             idx = random.randint(0, 4)
+            
             letter = Letter.objects.create(
                 frame=frame, recipient=recipient, due_date=due_date, status="pending",
                 document_type=doc_types[idx], description=descs[idx]
             )
-            # Tworzymy wpis w bazie o wysłanym SMS-ie
-            content = f"Cześć {recipient.first_name}, na półce {shelf.name} czeka na Ciebie nowe pismo. Termin odbioru: {due_date}."
+            content = f"Cześć {recipient.first_name}, na półce {shelf.name} czeka na Ciebie nowe pismo: {doc_types[idx]}. Termin odbioru: {due_date}."
             Notification.objects.create(letter=letter, channel="sms", content=content)
-        else:
-            content = f"Cześć {recipient.first_name}, masz nowe pismo, ale nie ma jeszcze przypisanej półki."
 
         return JsonResponse({
             "status": "ok",
             "recipient": f"{recipient.first_name} {recipient.last_name}",
             "phone": recipient.phone or "+48 000 000 000",
-            "shelf": shelf.name if shelf else "Brak",
+            "shelf": shelf.name,
             "content": content
         })
     return JsonResponse({"error": "Method not allowed"}, status=405)

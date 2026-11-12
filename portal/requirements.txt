@@ -1,6 +1,5 @@
-asgiref==3.13.0
-Django==6.1.1
-idna==3.20
-pillow==12.3.0
-PyMySQL==1.2.3
-sqlparse==0.6.1
+Django
+gunicorn
+Pillow
+requests
+pymysql

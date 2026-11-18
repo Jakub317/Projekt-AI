@@ -1,0 +1,73 @@
+{% extends "submissions/base.html" %}
+{% block title %}Panel Operacyjny{% endblock %}
+{% block header_title %}🛠️ Panel Operacyjny: Zarządzanie Ręczne{% endblock %}
+{% block content %}
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+    
+    <!-- 1. DODAJ PRACOWNIKA -->
+    <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #3b82f6;">
+        <h3 style="margin-top: 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">👤 Dodaj Pracownika</h3>
+        <form method="POST" style="display: flex; flex-direction: column; gap: 12px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_recipient">
+            <input type="text" name="first_name" placeholder="Imię" required style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <input type="text" name="last_name" placeholder="Nazwisko" required style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <input type="email" name="email" placeholder="Email (opcjonalnie)" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <input type="text" name="phone" placeholder="Telefon (opcjonalnie)" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <button type="submit" style="background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer;">Dodaj Pracownika</button>
+        </form>
+    </div>
+
+    <!-- 2. DODAJ DOKUMENT RĘCZNIE -->
+    <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #10b981;">
+        <h3 style="margin-top: 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">📄 Wystaw Dokument</h3>
+        <form method="POST" style="display: flex; flex-direction: column; gap: 12px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_document">
+            <label style="font-size: 0.85rem; font-weight: 600; color: #64748b;">Pracownik:</label>
+            <select name="recipient" required style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                <option value="">-- Wybierz pracownika --</option>
+                {% for r in recipients %}<option value="{{ r.id }}">{{ r.first_name }} {{ r.last_name }}</option>{% endfor %}
+            </select>
+            <label style="font-size: 0.85rem; font-weight: 600; color: #64748b;">Typ dokumentu:</label>
+            <select name="doc_type" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                <option value="Pismo urzędowe">Pismo urzędowe</option>
+                <option value="Paczka">Paczka</option>
+                <option value="Koperta">Koperta</option>
+                <option value="Wezwanie">Wezwanie</option>
+                <option value="Faktura">Faktura</option>
+            </select>
+            <label style="font-size: 0.85rem; font-weight: 600; color: #64748b;">Termin odbioru:</label>
+            <input type="date" name="due_date" required style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <button type="submit" style="background: #10b981; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer;">Wystaw Dokument</button>
+        </form>
+    </div>
+
+    <!-- 3. WGRAJ PLIK / ZDJĘCIE PÓŁKI -->
+    <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #f59e0b;">
+        <h3 style="margin-top: 0; color: #1e293b; display: flex; align-items: center; gap: 8px;">📁 Wgraj Plik / Zdjęcie</h3>
+        <form method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 12px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload_file">
+            <label style="font-size: 0.85rem; font-weight: 600; color: #64748b;">Przypisz do półki:</label>
+            <select name="shelf" required style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                <option value="">-- Wybierz półkę --</option>
+                {% for s in shelves %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+            </select>
+            <label style="font-size: 0.85rem; font-weight: 600; color: #64748b;">Wybierz plik:</label>
+            <input type="file" name="file" required style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
+            <button type="submit" style="background: #f59e0b; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer;">Wgraj i Przypisz</button>
+        </form>
+    </div>
+
+    <!-- 4. ADMINISTRACJA TECHNICZNA -->
+    <div style="background: #1e293b; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #6366f1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+        <h3 style="margin-top: 0; color: #e2e8f0; display: flex; align-items: center; gap: 8px;">⚙️ Administracja Techniczna</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px;">Pełny dostęp do bazy danych, modeli i konfiguracji systemu Django.</p>
+        <a href="/admin/" target="_blank" style="background: #6366f1; color: white; text-decoration: none; padding: 14px 24px; border-radius: 8px; font-weight: 700; display: flex; align-items: center; gap: 8px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            🚀 Otwórz Django Admin
+        </a>
+    </div>
+
+</div>
+{% endblock %}

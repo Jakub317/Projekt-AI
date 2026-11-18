@@ -1,0 +1,121 @@
+{% extends "submissions/base.html" %}
+{% block title %}Edytor Stref{% endblock %}
+{% block header_title %}🎯 Mapowanie: {{ shelf.name }}{% endblock %}
+{% block content %}
+<style>
+  .editor-wrapper { position: relative; display: inline-block; border: 2px solid #334155; border-radius: 8px; overflow: hidden; background: #f1f5f9; cursor: crosshair; touch-action: none; }
+  .editor-wrapper img { display: block; max-width: 100%; height: auto; user-select: none; pointer-events: none; }
+  .drawn-zone { position: absolute; border: 2px solid #10b981; background: rgba(16, 185, 129, 0.25); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #064e3b; font-size: 11px; text-align: center; overflow: hidden; backdrop-filter: blur(2px); transition: all 0.2s; }
+  .drawn-zone:hover { background: rgba(16, 185, 129, 0.4); border-color: #059669; z-index: 10; }
+  .zone-delete-btn { position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; background: #ef4444; color: white; border: 2px solid white; border-radius: 50%; font-size: 12px; line-height: 16px; text-align: center; cursor: pointer; display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+  .drawn-zone:hover .zone-delete-btn { display: block; }
+  .selection-box { position: absolute; border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.2); pointer-events: none; display: none; }
+</style>
+<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+  <div style="flex:1;min-width:280px;max-width:320px;background:white;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+    <h3 style="margin-top:0;">Przypisz nową strefę</h3>
+    <p style="font-size:0.85rem;color:#64748b;">1. Wybierz pracownika.<br>2. Kliknij i przeciągnij na zdjęciu.</p>
+    <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:6px;">Pracownik:</label>
+    <select id="recipientSelect" style="width:100%;margin-bottom:20px;padding:10px;border:1px solid #cbd5e1;border-radius:6px;">
+      {% for r in recipients %}<option value="{{ r.id }}">{{ r.first_name }} {{ r.last_name }}</option>{% empty %}<option value="">Brak pracowników</option>{% endfor %}
+    </select>
+    <h3 style="border-top:1px solid #e2e8f0;padding-top:15px;">Istniejące strefy:</h3>
+    <ul style="font-size:0.85rem;color:#475569;padding-left:20px;max-height:300px;overflow-y:auto;">
+      {% for z in zones %}
+      <li style="margin-bottom:6px;">
+        <strong>{{ z.name|default:z.recipient.first_name }}</strong> 
+        <span style="color:#94a3b8;font-size:0.75rem;">(X: {{ z.x_pct }}%, Y: {{ z.y_pct }}%)</span>
+      </li>
+      {% empty %}
+      <li style="color:#94a3b8;font-style:italic;">Brak stref.</li>
+      {% endfor %}
+    </ul>
+    <a href="{% url 'office:list_shelves' %}" style="display:block;margin-top:20px;text-align:center;color:#3b82f6;text-decoration:none;font-size:0.9rem;font-weight:600;">← Wróć do listy półek</a>
+  </div>
+  <div style="flex:3;min-width:300px;">
+    <div class="editor-wrapper" id="editor">
+      {% if shelf.photo and shelf.photo.id %}
+        <!-- Używamy ID obiektu UploadedMaterial, a nie ID półki! -->
+        <img src="/omnipost-portal/download/{{ shelf.photo.id }}/" id="shelfImage"  style="max-width:100%;">
+      {% else %}
+        <div style="padding:40px;text-align:center;color:#64748b;">
+          <p style="font-size:1.2rem;font-weight:600;">⚠️ Brak zdjęcia</p>
+          <p>Dodaj zdjęcie do tej półki w panelu administracyjnym.</p>
+        </div>
+      {% endif %}
+      <div class="selection-box" id="selectionBox"></div>
+      {% for z in zones %}
+        <div class="drawn-zone" style="left:{{ z.x_pct }}%;top:{{ z.y_pct }}%;width:{{ z.w_pct }}%;height:{{ z.h_pct }}%;" data-zone-id="{{ z.id }}">
+          {{ z.name|default:z.recipient.first_name }}
+          <div class="zone-delete-btn" onclick="deleteZone({{ z.id }}, event)">×</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+<script>
+const editor = document.getElementById('editor');
+const box = document.getElementById('selectionBox');
+const img = document.getElementById('shelfImage');
+let isDrawing = false, startX, startY;
+
+function deleteZone(zoneId, event) {
+  event.stopPropagation();
+  if (!confirm('Usunąć tę strefę?')) return;
+  fetch(`/omnipost-portal/office/api/zones/${zoneId}/delete/`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }
+  }).then(res => res.json()).then(data => { if (data.status === 'ok') location.reload(); else alert('Błąd: ' + data.message); });
+}
+
+function getEventPos(e, rect) {
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function startDraw(e) {
+  if (!img) return; e.preventDefault();
+  const rect = editor.getBoundingClientRect(); const pos = getEventPos(e, rect);
+  startX = pos.x; startY = pos.y; isDrawing = true;
+  box.style.left = startX + 'px'; box.style.top = startY + 'px'; box.style.width = '0px'; box.style.height = '0px'; box.style.display = 'block';
+}
+
+function moveDraw(e) {
+  if (!isDrawing || !img) return; e.preventDefault();
+  const rect = editor.getBoundingClientRect(); const pos = getEventPos(e, rect);
+  const width = pos.x - startX, height = pos.y - startY;
+  box.style.left = (width < 0 ? pos.x : startX) + 'px'; box.style.top = (height < 0 ? pos.y : startY) + 'px';
+  box.style.width = Math.abs(width) + 'px'; box.style.height = Math.abs(height) + 'px';
+}
+
+function endDraw(e) {
+  if (!isDrawing || !img) return; isDrawing = false; box.style.display = 'none';
+  const rect = editor.getBoundingClientRect();
+  const displayW = rect.width, displayH = rect.height;
+  const finalX_px = parseInt(box.style.left), finalY_px = parseInt(box.style.top);
+  const finalW_px = parseInt(box.style.width), finalH_px = parseInt(box.style.height);
+  if (finalW_px < 10 || finalH_px < 10) return;
+
+  const x_pct = ((finalX_px / displayW) * 100).toFixed(2);
+  const y_pct = ((finalY_px / displayH) * 100).toFixed(2);
+  const w_pct = ((finalW_px / displayW) * 100).toFixed(2);
+  const h_pct = ((finalH_px / displayH) * 100).toFixed(2);
+
+  const recipientId = document.getElementById('recipientSelect').value;
+  if (!recipientId) { alert('Wybierz pracownika!'); return; }
+  const recipientName = document.getElementById('recipientSelect').options[document.getElementById('recipientSelect').selectedIndex].text;
+
+  fetch('/omnipost-portal/office/api/zones/save/', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ shelf_id: {{ shelf.id }}, recipient_id: recipientId, x_pct: parseFloat(x_pct), y_pct: parseFloat(y_pct), w_pct: parseFloat(w_pct), h_pct: parseFloat(h_pct), name: recipientName })
+  }).then(res => res.json()).then(data => { if (data.status === 'ok') location.reload(); else alert('Błąd: ' + (data.message || 'Nieznany')); });
+}
+
+if (editor) {
+  editor.addEventListener('mousedown', startDraw); editor.addEventListener('mousemove', moveDraw);
+  editor.addEventListener('mouseup', endDraw); editor.addEventListener('mouseleave', endDraw);
+  editor.addEventListener('touchstart', startDraw, { passive: false }); editor.addEventListener('touchmove', moveDraw, { passive: false });
+  editor.addEventListener('touchend', endDraw);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OmniPost Portal{% endblock %}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: white; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 24px; border-radius: 8px; }
+        header h1 { color: #0f172a; font-size: 1.5rem; }
+        nav { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; }
+        nav a { color: #3b82f6; text-decoration: none; font-weight: 600; padding: 8px 16px; border-radius: 6px; transition: background 0.2s; }
+        nav a:hover { background: #eff6ff; }
+        footer { background: #1e293b; color: #94a3b8; padding: 20px; text-align: center; margin-top: 40px; border-radius: 8px; font-size: 0.9rem; }
+        footer a { color: #60a5fa; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📦 OmniPost Portal</h1>
+            <nav>
+                <a href="/omnipost-portal/office/">🤖 Procesor AI</a>
+                <a href="/omnipost-portal/office/operations/">🛠️ Panel Operacyjny</a>
+                <a href="/omnipost-portal/office/employee-documents/">📂 Dokumenty</a>
+                <a href="/omnipost-portal/office/zones/">🗺️ Mapowanie Stref</a>
+            </nav>
+        </header>
+        
+        {% if messages %}
+        <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+            <div style="background: {% if message.tags == 'success' %}#d1fae5{% elif message.tags == 'error' %}#fee2e2{% else %}#fef3c7{% endif %}; padding: 12px; border-radius: 6px; margin-bottom: 8px; color: {% if message.tags == 'success' %}#065f46{% elif message.tags == 'error' %}#991b1b{% else %}#92400e{% endif %};">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+        
+        <footer>
+            <p>© 2026 OmniPost Portal - System Zarządzania Przesyłkami</p>
+            <p style="margin-top: 8px; font-size: 0.85rem;">
+                Projekt akademicki | 
+                <a href="/admin/">Panel Techniczny (Admin)</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

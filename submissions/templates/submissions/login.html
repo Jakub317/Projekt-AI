@@ -1,0 +1,13 @@
+{% extends "submissions/base.html" %}
+{% block title %}Zaloguj — Portal OmniPost{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 360px; margin: 2rem auto;">
+  <h2>Logowanie</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Zaloguj</button>
+  </form>
+  <p class="muted">Rejestracja kont wyłącznie przez administratora.</p>
+</div>
+{% endblock %}

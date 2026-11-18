@@ -1,0 +1,37 @@
+{% extends "submissions/base.html" %}
+{% block title %}Baza Pracowników{% endblock %}
+{% block header_title %}👥 Baza Pracowników{% endblock %}
+{% block content %}
+{% if messages %}{% for message in messages %}
+<div style="padding:12px;margin-bottom:15px;border-radius:6px;background:{% if message.tags == 'error' %}#fee2e2{% else %}#dcfce7{% endif %};color:{% if message.tags == 'error' %}#991b1b{% else %}#166534{% endif %};">{{ message }}</div>
+{% endfor %}{% endif %}
+<div style="background:white;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);margin-bottom:20px;">
+  <h3 style="margin-top:0;">Dodaj pracownika</h3>
+  <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;align-items:end;">
+    {% csrf_token %}
+    <div><label style="font-size:0.875rem;font-weight:600;">Imię *</label><input type="text" name="first_name" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;"></div>
+    <div><label style="font-size:0.875rem;font-weight:600;">Nazwisko *</label><input type="text" name="last_name" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;"></div>
+    <div><label style="font-size:0.875rem;font-weight:600;">E-mail</label><input type="email" name="email" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;"></div>
+    <div><label style="font-size:0.875rem;font-weight:600;">Telefon</label><input type="text" name="phone" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;"></div>
+    <div><button type="submit" name="add" style="width:100%;padding:9px;background:#10b981;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;">➕ Dodaj</button></div>
+  </form>
+</div>
+<div style="background:white;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow-x:auto;">
+  <table style="width:100%;text-align:left;border-collapse:collapse;min-width:600px;">
+    <thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;"><th style="padding:12px;">Imię i nazwisko</th><th style="padding:12px;">E-mail</th><th style="padding:12px;">Telefon</th><th style="padding:12px;text-align:right;">Akcje</th></tr></thead>
+    <tbody>
+      {% for r in recipients %}
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:12px;font-weight:500;">{{ r.first_name }} {{ r.last_name }}</td>
+        <td style="padding:12px;">{{ r.email|default:"-" }}</td>
+        <td style="padding:12px;">{{ r.phone|default:"-" }}</td>
+        <td style="padding:12px;text-align:right;">
+          <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="recipient_id" value="{{ r.id }}">
+          <button type="submit" name="delete" style="padding:6px 12px;background:#ef4444;color:white;border:none;border-radius:4px;font-size:0.8rem;cursor:pointer;" onclick="return confirm('Usunąć?')">🗑️ Usuń</button></form>
+        </td>
+      </tr>
+      {% empty %}<tr><td colspan="4" style="padding:20px;text-align:center;color:#64748b;">Brak pracowników.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,243 @@
+{% extends "submissions/base.html" %}
+{% block title %}Procesor AI{% endblock %}
+{% block header_title %}🤖 Procesor AI: Detekcja i Przypisanie{% endblock %}
+{% block content %}
+<style>
+  .yolo-overlay-container { position: relative; display: inline-block; width: 100%; max-width: 500px; }
+  .yolo-overlay-container img { display: block; width: 100%; height: auto; }
+  .yolo-box { position: absolute; border: 2px solid #00FF00; background: rgba(0, 255, 0, 0.15); box-shadow: 0 0 10px rgba(0, 255, 0, 0.6); pointer-events: none; animation: popIn 0.3s ease-out; }
+  .yolo-label { position: absolute; top: -22px; left: -2px; background: #00FF00; color: #000; font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 3px 3px 0 0; white-space: nowrap; text-transform: uppercase; }
+  @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  
+  /* LIVE AI TERMINAL */
+  .ai-terminal { background: #0a0e1a; border: 2px solid #1e293b; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+  .terminal-header { background: #1e293b; padding: 12px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #334155; }
+  .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red { background: #ef4444; } .dot-yellow { background: #f59e0b; } .dot-green { background: #10b981; }
+  .terminal-title { color: #94a3b8; font-family: 'Courier New', monospace; font-size: 0.85rem; margin-left: 12px; }
+  .terminal-body { padding: 16px; font-family: 'Courier New', monospace; font-size: 0.85rem; max-height: 400px; overflow-y: auto; min-height: 200px; }
+  .log-line { padding: 4px 0; opacity: 0; animation: fadeIn 0.3s forwards; border-left: 3px solid transparent; padding-left: 8px; margin-bottom: 2px; }
+  @keyframes fadeIn { to { opacity: 1; } }
+  .log-info { color: #60a5fa; border-left-color: #3b82f6; }
+  .log-success { color: #34d399; border-left-color: #10b981; }
+  .log-warning { color: #fbbf24; border-left-color: #f59e0b; }
+  .log-error { color: #f87171; border-left-color: #ef4444; }
+  .cursor-blink { display: inline-block; width: 8px; height: 14px; background: #10b981; animation: blink 1s infinite; vertical-align: middle; }
+  @keyframes blink { 50% { opacity: 0; } }
+  
+  /* INCOMING CALL */
+  #incomingCallOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(5px); }
+  .call-ui { background: #1e293b; border-radius: 20px; padding: 40px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); border: 1px solid #334155; animation: slideUp 0.5s ease-out; max-width: 90%; width: 400px; }
+  @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .avatar { width: 100px; height: 100px; background: #3b82f6; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: white; font-weight: bold; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); animation: pulse-ring 1.5s infinite; }
+  @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
+  .call-status { color: #94a3b8; font-size: 0.9rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+  .call-name { color: white; font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; }
+  .call-number { color: #64748b; font-size: 1.1rem; margin-bottom: 30px; }
+  .call-actions { display: flex; justify-content: space-around; margin-top: 20px; }
+  .btn-call { width: 70px; height: 70px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; transition: transform 0.2s; }
+  .btn-call:hover { transform: scale(1.1); }
+  .btn-accept { background: #10b981; } .btn-decline { background: #ef4444; }
+</style>
+
+<div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+    <p style="text-align: center; color: #64748b; margin-bottom: 24px; font-size: 1.1rem;">
+        System wykrywa paczki, analizuje terminy i <strong>inteligentnie decyduje</strong> o powiadomieniach.
+        <br><span style="font-size: 0.9rem; color: #94a3b8;">🔊 Włącz dźwięk | 🖥️ Obserwuj Live AI Terminal po prawej</span>
+    </p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+        <!-- LEWA: ZDJĘCIA -->
+        <div>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px;">
+                <div style="flex: 1; min-width: 200px; text-align: center;">
+                    <h3 style="color: #0369a1; margin-bottom: 8px; font-size: 1rem;">📸 Zdjęcie Referencyjne</h3>
+                    <div style="border: 3px solid #0369a1; border-radius: 8px; overflow: hidden; background: #f1f5f9; min-height: 180px; display: flex; align-items: center; justify-content: center;">
+                        {% if shelf_before and shelf_before.photo and shelf_before.photo.id %}
+                            <img src="/omnipost-portal/download/{{ shelf_before.photo.id }}/" alt="Przed" style="max-width: 100%; max-height: 250px; object-fit: contain;">
+                        {% else %}<p style="color: #94a3b8; padding: 20px; font-size: 0.85rem;">Brak zdjęcia</p>{% endif %}
+                    </div>
+                </div>
+                <div style="flex: 1; min-width: 200px; text-align: center;">
+                    <h3 style="color: #059669; margin-bottom: 8px; font-size: 1rem;">📱 Analiza AI (Live)</h3>
+                    <div class="yolo-overlay-container" style="border: 3px solid #059669; border-radius: 8px; overflow: hidden; background: #f1f5f9; min-height: 180px; margin: 0 auto;">
+                        {% if shelf_after and shelf_after.photo and shelf_after.photo.id %}
+                            <img src="/omnipost-portal/download/{{ shelf_after.photo.id }}/" id="shelfImageAfter" alt="Po" style="max-width: 100%; max-height: 250px; object-fit: contain;">
+                            <div id="yoloOverlays"></div>
+                        {% else %}<p style="color: #94a3b8; padding: 20px; font-size: 0.85rem;">Brak zdjęcia</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <button id="compareBtn" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 14px 40px; font-size: 1.05rem; font-weight: 700; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+                    📦 Zeskanuj i powiadom odbiorców
+                </button>
+            </div>
+        </div>
+
+        <!-- PRAWA: LIVE AI TERMINAL -->
+        <div>
+            <h3 style="color: #1e293b; margin-bottom: 8px; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: blink 1s infinite;"></span>
+                🖥️ Live AI Terminal
+            </h3>
+            <div class="ai-terminal">
+                <div class="terminal-header">
+                    <div class="terminal-dot dot-red"></div>
+                    <div class="terminal-dot dot-yellow"></div>
+                    <div class="terminal-dot dot-green"></div>
+                    <div class="terminal-title">omnipost-ai-engine — bash — 80x24</div>
+                </div>
+                <div class="terminal-body" id="aiTerminal">
+                    <div class="log-line log-info">$ omnipost-ai --scan --shelf={{ shelf_before.id|default:"?" }}</div>
+                    <div class="log-line log-info">$ waiting for scan command...<span class="cursor-blink"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="aiReport" style="display: none; margin-top: 24px;">
+        <h3 id="reportSummary" style="text-align: center; font-size: 1.2rem; margin-bottom: 16px;"></h3>
+        <div id="skippedInfo" style="display: none; background: #fef3c7; border: 1px solid #fbbf24; color: #92400e; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9rem;"></div>
+        <div id="waitingInfo" style="display: none; background: #dbeafe; border: 1px solid #60a5fa; color: #1e40af; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9rem;"></div>
+        <div style="background: #f8fafc; border-radius: 8px; padding: 16px; border: 1px solid #e2e8f0;">
+            <h4 style="margin-top: 0; color: #334155; font-size: 1rem;">📋 Wygenerowane przypisania:</h4>
+            <ul id="matchedList" style="list-style: none; padding: 0; margin: 0;"></ul>
+        </div>
+    </div>
+</div>
+
+<div id="incomingCallOverlay">
+    <div class="call-ui">
+        <div class="call-status">Asystent AI OmniPost</div>
+        <div class="avatar" id="callAvatar">AI</div>
+        <div class="call-name" id="callName">Anna Kowalska</div>
+        <div class="call-number" id="callNumber">+48 500 600 700</div>
+        <div style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 20px; font-style: italic;">"Odbieram, aby wysłuchać wiadomości..."</div>
+        <div class="call-actions">
+            <button class="btn-call btn-decline" onclick="endCall()">✖</button>
+            <button class="btn-call btn-accept" onclick="acceptCall()">📞</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentCallText = "";
+let speechSynthesis = window.speechSynthesis;
+
+document.getElementById('compareBtn').addEventListener('click', function() {
+    const btn = this;
+    const report = document.getElementById('aiReport');
+    const summary = document.getElementById('reportSummary');
+    const list = document.getElementById('matchedList');
+    const overlays = document.getElementById('yoloOverlays');
+    const skipped = document.getElementById('skippedInfo');
+    const waiting = document.getElementById('waitingInfo');
+    const terminal = document.getElementById('aiTerminal');
+
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Analiza AI...';
+    report.style.display = 'block';
+    summary.textContent = 'Skanowanie...';
+    summary.style.color = '#3b82f6';
+    list.innerHTML = '';
+    overlays.innerHTML = '';
+    skipped.style.display = 'none';
+    waiting.style.display = 'none';
+    terminal.innerHTML = '';
+
+    fetch('/omnipost-portal/office/api/diff-engine/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({
+            shelf_before_id: {% if shelf_before %}{{ shelf_before.id }}{% else %}null{% endif %},
+            shelf_after_id: {% if shelf_after %}{{ shelf_after.id }}{% else %}null{% endif %}
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '📦 Zeskanuj i powiadom odbiorców';
+
+        if (data.status === 'ok') {
+            summary.textContent = data.message;
+            summary.style.color = '#059669';
+
+            // Animowane wyświetlanie logów w terminalu
+            if (data.ai_logs) {
+                data.ai_logs.forEach((log, idx) => {
+                    setTimeout(() => {
+                        const line = document.createElement('div');
+                        line.className = `log-line log-${log.type}`;
+                        line.textContent = log.msg;
+                        terminal.appendChild(line);
+                        terminal.scrollTop = terminal.scrollHeight;
+                    }, idx * 400); // 400ms opóźnienia między logami
+                });
+            }
+
+            if (data.skipped_calls && data.skipped_calls.length > 0) {
+                skipped.style.display = 'block';
+                skipped.innerHTML = '⏱️ <strong>Pominięte (anty-spam 30 min):</strong> ' + data.skipped_calls.join(', ');
+            }
+            if (data.waiting_messages && data.waiting_messages.length > 0) {
+                waiting.style.display = 'block';
+                waiting.innerHTML = '⏳ <strong>Wstrzymane (odległy termin):</strong> ' + data.waiting_messages.join('; ');
+            }
+
+            if (data.matched_packages.length > 0) {
+                data.matched_packages.forEach(pkg => {
+                    const box = document.createElement('div');
+                    box.className = 'yolo-box';
+                    box.style.left = pkg.x_pct + '%'; box.style.top = pkg.y_pct + '%';
+                    box.style.width = pkg.w_pct + '%'; box.style.height = pkg.h_pct + '%';
+                    const label = document.createElement('div');
+                    label.className = 'yolo-label';
+                    label.textContent = pkg.object_type + ' -> ' + pkg.assigned_to;
+                    box.appendChild(label);
+                    overlays.appendChild(box);
+                    list.innerHTML += `<li style="background: white; border: 1px solid #e2e8f0; border-left: 4px solid #10b981; padding: 10px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between;"><div><strong>📦 ${pkg.object_type}</strong> <span style="color: #64748b; font-size: 0.85rem;">(${pkg.status})</span></div><div style="font-weight: 700;">${pkg.assigned_to}</div></li>`;
+                });
+
+                if (data.incoming_calls && data.incoming_calls.length > 0) {
+                    setTimeout(() => triggerAICall(data.incoming_calls[0]), data.ai_logs.length * 400 + 500);
+                }
+            } else {
+                list.innerHTML = '<li style="padding: 10px; color: #ef4444;">Brak przesyłek do powiadomienia.</li>';
+            }
+        } else {
+            summary.textContent = '❌ Błąd: ' + data.message;
+        }
+    });
+});
+
+function triggerAICall(callData) {
+    document.getElementById('callName').textContent = callData.recipient_name;
+    document.getElementById('callNumber').textContent = callData.phone;
+    document.getElementById('callAvatar').textContent = callData.recipient_name.charAt(0);
+    document.getElementById('incomingCallOverlay').style.display = 'flex';
+    currentCallText = callData.text;
+}
+
+function acceptCall() {
+    document.getElementById('callName').textContent = "Połączono...";
+    document.querySelector('.call-status').textContent = "Asystent AI Mówi";
+    if ('speechSynthesis' in window) {
+        let utterance = new SpeechSynthesisUtterance(currentCallText);
+        utterance.lang = 'pl-PL';
+        utterance.onend = function() { endCall(); };
+        speechSynthesis.speak(utterance);
+    } else {
+        alert("Przeglądarka nie obsługuje syntezy mowy.");
+        endCall();
+    }
+}
+
+function endCall() {
+    document.getElementById('incomingCallOverlay').style.display = 'none';
+    speechSynthesis.cancel();
+    document.querySelector('.call-status').textContent = "Asystent AI OmniPost";
+}
+</script>
+{% endblock %}

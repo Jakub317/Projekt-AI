@@ -1,0 +1,54 @@
+{% extends "submissions/base.html" %}
+{% block title %}Administracja — Portal OmniPost{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Filtruj materiały</h2>
+  <form method="get">
+    <label>Użytkownik: <input type="text" name="user" value="{{ user_filter }}"></label>
+    <label>Typ:
+      <select name="type">
+        <option value="">— wszystkie —</option>
+        {% for v, l in type_choices %}<option value="{{ v }}" {% if v == type_filter %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Status:
+      <select name="status">
+        <option value="">— wszystkie —</option>
+        {% for v, l in status_choices %}<option value="{{ v }}" {% if v == status_filter %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">Filtruj</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Wszystkie materiały ({{ materials|length }})</h2>
+  {% if materials %}
+    <table>
+      <tr><th>Plik</th><th>Typ</th><th>Status</th><th>Użytkownik</th><th>Data</th><th>Akcje</th></tr>
+      {% for m in materials %}
+        <tr>
+          <td>{{ m.original_name }}</td>
+          <td>{{ m.get_material_type_display }}</td>
+          <td><strong>{{ m.get_status_display }}</strong></td>
+          <td>{{ m.uploaded_by.username }}</td>
+          <td>{{ m.uploaded_at|date:"Y-m-d H:i" }}</td>
+          <td>
+            <a href="{% url 'submissions:download' m.pk %}" style="margin-right:10px;">Pobierz</a>
+            {% if m.status == 'pending' %}
+              <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="pk" value="{{ m.pk }}">
+                <button type="submit" name="action" value="accept" style="background:#2a2; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Akceptuj</button>
+                <button type="submit" name="action" value="reject" style="background:#c22; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Odrzuć</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p class="muted">Brak materiałów spełniających filtry.</p>
+  {% endif %}
+</div>
+{% endblock %}

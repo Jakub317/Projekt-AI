@@ -1,0 +1,52 @@
+{% extends "submissions/base.html" %}
+{% block title %}Konsola Systemowa{% endblock %}
+{% block header_title %}💻 Konsola Systemowa: Logi Powiadomień{% endblock %}
+{% block content %}
+<style>
+  .console-log { font-family: 'Courier New', Courier, monospace; background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 20px; max-height: 600px; overflow-y: auto; }
+  .log-entry { border-bottom: 1px solid #334155; padding: 12px 0; display: flex; gap: 16px; align-items: flex-start; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: #94a3b8; font-size: 0.85rem; min-width: 140px; }
+  .log-channel { font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; min-width: 60px; text-align: center; }
+  .channel-sms { background: #f59e0b; color: #000; }
+  .channel-email { background: #3b82f6; color: #fff; }
+  .log-content { color: #f8fafc; font-size: 0.95rem; line-height: 1.5; }
+  .refresh-hint { text-align: right; color: #64748b; font-size: 0.85rem; margin-bottom: 10px; }
+</style>
+
+<div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <p style="color: #64748b; margin: 0;">Rejestr wszystkich symulowanych powiadomień SMS i E-mail generowanych przez system AI.</p>
+        <a href="{% url 'office:demo' %}" style="background: #64748b; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.9rem;">← Wróć do Procesora AI</a>
+    </div>
+
+    <div class="refresh-hint">🔄 Strona odświeża się automatycznie co 10 sekund</div>
+    
+    <div class="console-log" id="consoleLog">
+        {% if notifications %}
+            {% for notif in notifications %}
+            <div class="log-entry">
+                <div class="log-time">{{ notif.sent_at|date:"Y-m-d H:i:s" }}</div>
+                <div class="log-channel {% if notif.channel == 'sms' %}channel-sms{% else %}channel-email{% endif %}">
+                    {{ notif.channel|upper }}
+                </div>
+                <div class="log-content">
+                    <strong>[{{ notif.letter.recipient }}]</strong> {{ notif.content }}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="log-entry">
+                <div class="log-content" style="color: #94a3b8; font-style: italic;">Brak wygenerowanych powiadomień. Uruchom detekcję w Procesorze AI.</div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Automatyczne odświeżanie konsoli co 10 sekund, aby symulować "czas rzeczywisty"
+    setTimeout(function() {
+        location.reload();
+    }, 10000);
+</script>
+{% endblock %}

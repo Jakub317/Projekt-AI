@@ -1,0 +1,87 @@
+{% extends "submissions/base.html" %}
+{% block title %}Dokumenty Pracowników{% endblock %}
+{% block header_title %}📂 Wykaz Dokumentów Pracowników{% endblock %}
+{% block content %}
+<div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+    
+    <!-- Statystyki ogólne -->
+    <div style="display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 150px; background: #fef3c7; padding: 16px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: #92400e;">{{ total_pending }}</div>
+            <div style="color: #78350f; font-size: 0.9rem;">Oczekujące</div>
+        </div>
+        <div style="flex: 1; min-width: 150px; background: #d1fae5; padding: 16px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: #065f46;">{{ total_picked }}</div>
+            <div style="color: #064e3b; font-size: 0.9rem;">Odebrane</div>
+        </div>
+        <div style="flex: 1; min-width: 150px; background: #fee2e2; padding: 16px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: #991b1b;">{{ total_overdue }}</div>
+            <div style="color: #7f1d1d; font-size: 0.9rem;">Przeterminowane</div>
+        </div>
+    </div>
+
+    <!-- Lista pracowników z dokumentami -->
+    {% for rd in recipient_docs %}
+    <div style="margin-bottom: 24px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <!-- Nagłówek pracownika -->
+        <div style="background: #f1f5f9; padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0;">
+            <div>
+                <h3 style="margin: 0; color: #1e293b; font-size: 1.2rem;">👤 {{ rd.recipient.first_name }} {{ rd.recipient.last_name }}</h3>
+                <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
+                    {% if rd.recipient.email %}📧 {{ rd.recipient.email }}{% endif %}
+                    {% if rd.recipient.phone %} | 📱 {{ rd.recipient.phone }}{% endif %}
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <span style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">{{ rd.pending }} oczek.</span>
+                <span style="background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">{{ rd.delivered }} odebr.</span>
+                <span style="background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">{{ rd.overdue }} przeterm.</span>
+            </div>
+        </div>
+        
+        <!-- Tabela dokumentów pracownika -->
+        {% if rd.letters %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                    <th style="padding: 10px; text-align: left; font-size: 0.85rem; color: #64748b;">Typ</th>
+                    <th style="padding: 10px; text-align: left; font-size: 0.85rem; color: #64748b;">Półka</th>
+                    <th style="padding: 10px; text-align: left; font-size: 0.85rem; color: #64748b;">Data wykrycia</th>
+                    <th style="padding: 10px; text-align: left; font-size: 0.85rem; color: #64748b;">Termin odbioru</th>
+                    <th style="padding: 10px; text-align: left; font-size: 0.85rem; color: #64748b;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for letter in rd.letters %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px;"><strong>{{ letter.document_type }}</strong></td>
+                    <td style="padding: 10px;">{{ letter.frame.shelf.name }}</td>
+                    <td style="padding: 10px; font-size: 0.9rem;">{{ letter.created_at|date:"Y-m-d H:i" }}</td>
+                    <td style="padding: 10px; font-size: 0.9rem;">{{ letter.due_date|date:"Y-m-d" }}</td>
+                    <td style="padding: 10px;">
+                        {% if letter.status == 'pending' %}
+                            <span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem;">Oczekuje</span>
+                        {% elif letter.status == 'delivered' %}
+                            <span style="background: #d1fae5; color: #065f46; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem;">Odebrane</span>
+                        {% else %}
+                            <span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem;">Przeterminowane</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="padding: 20px; text-align: center; color: #94a3b8; font-style: italic;">
+            Brak dokumentów dla tego pracownika.
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div style="text-align: center; padding: 60px; color: #64748b;">
+        <p style="font-size: 1.2rem; font-weight: 600;">Brak pracowników w systemie.</p>
+        <p>Dodaj pracowników w sekcji "Zarządzanie pracownikami".</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

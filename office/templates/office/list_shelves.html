@@ -1,0 +1,24 @@
+{% extends "submissions/base.html" %}
+{% block title %}Mapowanie Stref{% endblock %}
+{% block header_title %}🗺️ Mapowanie Stref{% endblock %}
+{% block content %}
+<div style="background:white;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);overflow-x:auto;">
+  <table style="width:100%;text-align:left;border-collapse:collapse;min-width:500px;">
+    <thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;"><th style="padding:12px;">Nazwa półki</th><th style="padding:12px;">Lokalizacja</th><th style="padding:12px;">Liczba stref</th><th style="padding:12px;text-align:right;">Akcje</th></tr></thead>
+    <tbody>
+      {% for shelf in shelves %}
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:12px;font-weight:600;">{{ shelf.name }}</td>
+        <td style="padding:12px;">{{ shelf.location }}</td>
+        <td style="padding:12px;"><span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:12px;font-size:0.8rem;font-weight:600;">{{ shelf.zones.count }}</span></td>
+        <td style="padding:12px;text-align:right;">
+          <a href="{% url 'office:edit_shelf_zones' shelf.id %}" style="text-decoration:none;">
+            <button style="padding:8px 16px;background:#3b82f6;color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;">✏️ Edytuj Strefy</button>
+          </a>
+        </td>
+      </tr>
+      {% empty %}<tr><td colspan="4" style="padding:20px;text-align:center;color:#64748b;">Brak półek.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

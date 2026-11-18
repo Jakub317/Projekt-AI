@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.11
+    container_name: omnipost_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-omnipost}
+      MYSQL_USER: ${DB_USER:-omnipost_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_change_me}
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  web:
+    build: .
+    container_name: omnipost_web
+    restart: always
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-me-in-production}
+      - DEBUG=${DEBUG:-True}
+      - DB_NAME=${DB_NAME:-omnipost}
+      - DB_USER=${DB_USER:-omnipost_user}
+      - DB_PASSWORD=${DB_PASSWORD:-change_me}
+      - DB_HOST=db
+      - DB_PORT=3306
+    depends_on:
+      - db
+
+volumes:
+  db_data:

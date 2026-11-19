@@ -18,9 +18,11 @@ def demo_office(request):
     shelves = list(Shelf.objects.exclude(photo__isnull=True).order_by('-id')[:2])
     shelf_before = shelves[0] if len(shelves) > 0 else None
     shelf_after = shelves[1] if len(shelves) > 1 else shelves[0]
+    all_photos = UploadedMaterial.objects.filter(material_type='photo').order_by('-id')
     return render(request, 'office/demo.html', {
         'shelf_before': shelf_before,
         'shelf_after': shelf_after,
+        'all_photos': all_photos,
     })
 
 @login_required
@@ -82,7 +84,7 @@ def operations_panel(request):
                 shelf = get_object_or_404(Shelf, id=shelf_id)
                 try:
                     from submissions.models import UploadedMaterial
-                    material = UploadedMaterial.objects.create(uploaded_by=request.user, material_type="photo", file=uploaded_file, title=uploaded_file.name)
+                    material = UploadedMaterial.objects.create(uploaded_by=request.user, material_type="photo", file=uploaded_file, original_name=uploaded_file.name)
                     shelf.photo = material
                     shelf.save()
                     messages.success(request, f'✅ Wgrano plik i przypisano do półki: {shelf.name}')
@@ -94,11 +96,13 @@ def operations_panel(request):
     return render(request, 'office/operations.html', {'recipients': recipients, 'shelves': shelves})
 
 def public_photo(request, pk):
-    s = Shelf.objects.filter(pk=pk).first()
-    m = s.photo if (s and s.photo) else UploadedMaterial.objects.filter(pk=pk).first()
+    m = UploadedMaterial.objects.filter(pk=pk).first()
+    if not m:
+        s = Shelf.objects.filter(pk=pk).first()
+        m = s.photo if s else None
     if m and m.file and default_storage.exists(m.file.name):
         return FileResponse(default_storage.open(m.file.name, "rb"), content_type="image/jpeg")
-    raise Http404()
+    raise Http404("Brak pliku")
 
 def _old_photo(request, pk):
     shelf = get_object_or_404(Shelf, pk=pk)
@@ -244,7 +248,9 @@ def api_analyze_images(request):
         photo_b = get_object_or_404(UploadedMaterial, id=data.get('img_b_id'))
         frames_a = detect_frames(photo_a) or []
         frames_b = detect_frames(photo_b) or []
-        shelf = photo_a.shelves.first() or Shelf.objects.first()
+        if not Recipient.objects.exists():
+            Recipient.objects.create(first_name='Eryk', last_name='Kowalski', phone='+48123456789')
+        shelf = photo_a.shelves.first() or Shelf.objects.first() or Shelf.objects.create(name='P??ka G??wna', location='Biuro')
         zones = list(shelf.zones.all()) if shelf else []
         db_logs = []
         for box in frames_b:

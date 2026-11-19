@@ -8,15 +8,16 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.utils import timezone
+from django.core.files.storage import default_storage
+from submissions.models import UploadedMaterial
 from .models import Shelf, Recipient, RecipientZone, DetectedFrame, Letter, Notification
+from .detection import detect_frames
 
 @login_required
 def demo_office(request):
     shelves = list(Shelf.objects.exclude(photo__isnull=True).order_by('-id')[:2])
     shelf_before = shelves[0] if len(shelves) > 0 else None
-    # POPRAWKA: jeśli nie ma drugiej półki, używamy tej samej co shelf_before (lub None, jeśli lista jest pusta)
-    shelf_after = shelves[1] if len(shelves) > 1 else shelf_before 
-    
+    shelf_after = shelves[1] if len(shelves) > 1 else shelves[0]
     return render(request, 'office/demo.html', {
         'shelf_before': shelf_before,
         'shelf_after': shelf_after,
@@ -81,7 +82,7 @@ def operations_panel(request):
                 shelf = get_object_or_404(Shelf, id=shelf_id)
                 try:
                     from submissions.models import UploadedMaterial
-                    material = UploadedMaterial.objects.create(file=uploaded_file, name=uploaded_file.name)
+                    material = UploadedMaterial.objects.create(uploaded_by=request.user, material_type="photo", file=uploaded_file, title=uploaded_file.name)
                     shelf.photo = material
                     shelf.save()
                     messages.success(request, f'✅ Wgrano plik i przypisano do półki: {shelf.name}')
@@ -93,6 +94,13 @@ def operations_panel(request):
     return render(request, 'office/operations.html', {'recipients': recipients, 'shelves': shelves})
 
 def public_photo(request, pk):
+    s = Shelf.objects.filter(pk=pk).first()
+    m = s.photo if (s and s.photo) else UploadedMaterial.objects.filter(pk=pk).first()
+    if m and m.file and default_storage.exists(m.file.name):
+        return FileResponse(default_storage.open(m.file.name, "rb"), content_type="image/jpeg")
+    raise Http404()
+
+def _old_photo(request, pk):
     shelf = get_object_or_404(Shelf, pk=pk)
     img = getattr(shelf, 'image', None) or getattr(shelf, 'photo', None)
     if img and hasattr(img, 'path'):
@@ -226,3 +234,31 @@ def delete_zone(request, zone_id):
         return JsonResponse({'status': 'ok'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+@login_required
+@require_http_methods(['POST'])
+def api_analyze_images(request):
+    try:
+        data = json.loads(request.body)
+        photo_a = get_object_or_404(UploadedMaterial, id=data.get('img_a_id'))
+        photo_b = get_object_or_404(UploadedMaterial, id=data.get('img_b_id'))
+        frames_a = detect_frames(photo_a) or []
+        frames_b = detect_frames(photo_b) or []
+        shelf = photo_a.shelves.first() or Shelf.objects.first()
+        zones = list(shelf.zones.all()) if shelf else []
+        db_logs = []
+        for box in frames_b:
+            x_pct = box['x'] / 10.0 if box['x'] > 100 else float(box['x'])
+            y_pct = box['y'] / 10.0 if box['y'] > 100 else float(box['y'])
+            w_pct = box['w'] / 10.0 if box['w'] > 100 else float(box['w'])
+            h_pct = box['h'] / 10.0 if box['h'] > 100 else float(box['h'])
+            frame = DetectedFrame.objects.create(shelf=shelf, frame_index=99, x_pct=x_pct, y_pct=y_pct, w_pct=w_pct, h_pct=h_pct, confidence=box.get('confidence', 0.9))
+            cx, cy = x_pct + w_pct / 2.0, y_pct + h_pct / 2.0
+            zone = next((z for z in zones if z.x_pct <= cx <= z.x_pct + z.w_pct and z.y_pct <= cy <= z.y_pct + z.h_pct), zones.pop(0) if zones else None)
+            rec = zone.recipient if zone else Recipient.objects.first()
+            if rec:
+                Letter.objects.create(frame=frame, recipient=rec, due_date=timezone.localdate() + timedelta(days=7), document_type='Nowe pismo', status='pending')
+                db_logs.append(f'Nowe pismo (ramka: {frame.id}) -> {rec}')
+        return JsonResponse({'status': 'ok', 'metrics': {'boxes_a': len(frames_a), 'boxes_b': len(frames_b)}, 'added': len(frames_b), 'removed': 0, 'db_logs': db_logs, 'raw_a': frames_a, 'raw_b': frames_b})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

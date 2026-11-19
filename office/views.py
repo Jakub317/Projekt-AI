@@ -14,7 +14,9 @@ from .models import Shelf, Recipient, RecipientZone, DetectedFrame, Letter, Noti
 def demo_office(request):
     shelves = list(Shelf.objects.exclude(photo__isnull=True).order_by('-id')[:2])
     shelf_before = shelves[0] if len(shelves) > 0 else None
-    shelf_after = shelves[1] if len(shelves) > 1 else shelves[0]
+    # POPRAWKA: jeśli nie ma drugiej półki, używamy tej samej co shelf_before (lub None, jeśli lista jest pusta)
+    shelf_after = shelves[1] if len(shelves) > 1 else shelf_before 
+    
     return render(request, 'office/demo.html', {
         'shelf_before': shelf_before,
         'shelf_after': shelf_after,

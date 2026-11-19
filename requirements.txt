@@ -1,5 +1,6 @@
-Django>=4.2,<5.0
+﻿Django>=4.2,<5.0
 Pillow>=10.0.0
 mysqlclient>=2.2.0
 python-dotenv>=1.0.0
 gunicorn>=21.2.0
+pymysql>=1.1.0

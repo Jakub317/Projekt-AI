@@ -1,166 +1,95 @@
-# Portal OmniPost / SmartShelf AI
+# 📦 OmniPost - Smart Shelf z AI
 
-Portal dla upoważnionych studentów projektu OmniPost do przesyłania zdjęć półek,
-kodu źródłowego, archiwów ZIP i modeli ML. Część infrastruktury Fundacji
-Respublica Civium.
+Kompletny system inteligentnej półki (Smart Shelf) z wykorzystaniem AI do wykrywania przesyłek (YOLO), symulacji połączeń głosowych oraz Live AI Terminalu. Projekt jest w pełni skonteneryzowany i gotowy do uruchomienia w środowisku lokalnym.
 
-## Adres publiczny
+## 🚀 Wymagania wstępne
 
-https://respublicacivium.pl/omnipost-portal/
+Przed rozpoczęciem upewnij się, że masz zainstalowane:
+- **Docker Desktop** z włączonym backendem WSL 2 (Windows) lub Docker Engine (Linux/macOS)
+  - Pobierz: https://www.docker.com/products/docker-desktop/
+- **Git** (do klonowania repozytorium)
+  - Pobierz: https://git-scm.com/downloads
 
-## Architektura
+---
 
-- Aplikacja Django 6.1 (projekt `portalconfig`, aplikacja `submissions`).
-- Osobne środowisko Python: `/var/www/omnipost-portal/venv` (Python 3.13).
-- Baza danych: MariaDB, baza `omnipost_portal`, użytkownik `omniportal`
-  (uprawnienia tylko do tej bazy; hasło w `/etc/omnipost-portal.env`, tryb 0640
-  root:www-data).
-- Pliki studentów: `/var/lib/omnipost-portal/uploads/` (poza WWW, tryb 0750
-  krzysztof:www-data).
-- Pliki statyczne: `/var/lib/omnipost-portal/static/`.
-- Usługa systemd: `omnipost-portal.service` (gunicorn, 3 workery, 127.0.0.1:8010).
-- Nginx: `location /omnipost-portal/` → `proxy_pass http://127.0.0.1:8010`.
-- Istniejąca demonstracja OmniPost (`/omnipost/`) i strona Fundacji (`/`)
-  pozostają nietknięte.
+## ⚡ Instalacja i uruchomienie (krok po kroku)
 
-## Struktura katalogów
+### Krok 1: Sklonuj repozytorium
 
-    /var/www/omnipost-portal/
-    ├── manage.py
-    ├── portalconfig/          # settings, urls, wsgi
-    ├── submissions/           # modele, widoki, formularze, szablony
-    │   ├── migrations/
-    │   ├── templates/submissions/
-    │   ├── models.py          # UserProfile, UploadedMaterial, AuditLog
-    │   ├── views.py
-    │   ├── forms.py
-    │   ├── urls.py
-    │   └── admin.py
-    ├── venv/                  # środowisko Python (nie commitować)
-    └── README.md
+Otwórz terminal (PowerShell, CMD lub bash) i wykonaj:
 
-    /var/lib/omnipost-portal/
-    ├── uploads/               # pliki studentów (poza WWW)
-    └── static/                # pliki statyczne Django (collectstatic)
+```bash
+git clone -b feature/omnipost-portal https://github.com/Jakub317/Projekt-AI.git
+cd Projekt-AI
 
-    /etc/omnipost-portal.env   # konfiguracja (hasła, DB, UPLOAD_ROOT)
-    /etc/systemd/system/omnipost-portal.service
+Krok 2: Utwórz plik konfiguracyjny .env
 
-## Zarządzanie użytkownikami
+Projekt wymaga pliku .env z zmiennymi środowiskowymi. W repozytorium znajduje się plik .env.example z bezpiecznymi wartościami domyślnymi.
 
-Rejestracja jest zamknięta — konta tworzy administrator portalu przez
-`manage.py shell` (brak otwartej rejestracji publicznej).
+Windows PowerShell:
+powershell
 
-### Utworzenie studenta
+1. copy .env.example .env
 
-    sudo -u krzysztof -g www-data bash -c '
-      set -a; source /etc/omnipost-portal.env; set +a;
-      /var/www/omnipost-portal/venv/bin/python /var/www/omnipost-portal/manage.py shell -c "
-        from django.contrib.auth.models import User
-        from submissions.models import UserProfile
-        u = User.objects.create_user(username=\"LOGIN\", password=\"HASŁO\")
-        p, _ = UserProfile.objects.get_or_create(user=u)
-        p.role = \"student\"
-        p.save()
-        print(u.username, p.role)
-      "'
+(To polecenie automatycznie tworzy i zapisuje plik .env. Nie musisz go tworzyć ręcznie!). Plik należy zapisac z ustawieniem encoding utf8 (inne dają błedy)
 
-### Zmiana roli (student ↔ admin)
+Krok 3: Zbuduj i uruchom kontenery
+bash
 
-    ... p.role = \"admin\"; p.save()
+1. docker compose up -d --build
 
-### Zablokowanie konta
+System automatycznie:
+Zbuduje obraz Docker z aplikacją Django
+Uruchomi bazę danych MariaDB
+Poczeka, aż baza przejdzie test healthcheck
+Uruchomi aplikację Django
+Krok 4: Zainicjuj bazę danych
+Utwórz tabele w bazie danych:
 
-    ... p.is_blocked = True; p.save()
+1. docker compose exec web python manage.py migrate
 
-(Uwaga: flaga `is_blocked` jest sprawdzana w widokach — jeśli chcesz twardej
-blokady logowania, ustaw też `u.is_active = False`.)
+Krok 5: Utwórz konto administratora
 
-### Reset hasła
+1. docker compose exec web python manage.py createsuperuser
 
-    sudo -u krzysztof -g www-data /var/www/omnipost-portal/venv/bin/python \
-      /var/www/omnipost-portal/manage.py changepassword LOGIN
+Postępuj zgodnie z instrukcjami w terminalu (podaj login, e-mail i hasło).
 
-## Panel administratora (Django admin)
+⚠️ BARDZO WAŻNY PIERWSZY KROK (przed wejściem na stronę)
 
-    https://respublicacivium.pl/omnipost-portal/admin/
+Aby widok główny załadował się poprawnie i uniknąć błędów, musisz dodać dane testowe:
 
-Wymaga konta z `is_staff=True` i `is_superuser=True` oraz `UserProfile.role="admin"`.
-Rejestracja modeli: `UserProfile`, `UploadedMaterial`, `AuditLog` — z filtrami
-po typie, statusie i użytkowniku.
+Wejdź do panelu admina: http://localhost:8000/admin/
+Zaloguj się utworzonym kontem administratora.
+Przejdź do sekcji Office -> Shelfs i kliknij Add.
+Nadaj nazwę (np. "Półka Testowa") i wgraj dowolne zdjęcie w pole Photo.
+Kliknij Save.
+Bez tego aplikacja nie będzie miała danych do wyświetlenia w widoku "Przed/Po" i pojawi się błąd.
+🌐 Dostęp do aplikacji
 
-## Procedura backupu
+Panel Office (Live AI Terminal): http://localhost:8000/omnipost-portal/office/
+Panel Administratora: http://localhost:8000/admin/
 
-### Baza danych
+🛠️ Przydatne komendy
 
-    sudo mysqldump --single-transaction --routines --triggers \
-      -u omniportal -p omnipost_portal | gzip > \
-      /root/backup-omnipost_portal-$(date +%F).sql.gz
+# Zatrzymanie aplikacji (zachowuje dane w bazie)
+docker compose down
 
-(hasło do bazy: z `/etc/omnipost-portal.env`, NIE umieszczać w dokumentacji)
+# Uruchomienie ponownie (bez przebudowy)
+docker compose up -d
 
-### Pliki studentów
+# Podgląd logów w czasie rzeczywistym (przydatne przy błędach)
+docker compose logs -f web
 
-    sudo tar -czf /root/backup-omnipost-uploads-$(date +%F).tar.gz \
-      -C /var/lib/omnipost-portal uploads
+# Wejście do konsoli Django w kontenerze
+docker compose exec web python manage.py shell
 
-### Konfiguracja
+🐛 Rozwiązywanie najczęstszych problemów
 
-    sudo tar -czf /root/backup-omnipost-config-$(date +%F).tar.gz \
-      /etc/omnipost-portal.env \
-      /etc/systemd/system/omnipost-portal.service \
-      /etc/nginx/sites-enabled/respublicacivium \
-      /var/www/omnipost-portal/portalconfig \
-      /var/www/omnipost-portal/submissions
+Kontener web się restartuje:
 
-### Odtwarzanie
+Sprawdź przyczynę w logach: docker compose logs web --tail=50. Najczęstszą przyczyną jest brak pliku .env lub literówka w jego nazwie.
+Błąd IndexError na stronie /office/:
+Zapomniałeś wykonać "BARDZO WAŻNY PIERWSZY KROK". Dodaj Półkę (Shelf) ze zdjęciem w panelu admina.
+Port 8000 jest zajęty:
+Zmień port w pliku docker-compose.yml (np. na "8001:8000") i uruchom ponownie: docker compose down && docker compose up -d.
 
-    sudo systemctl stop omnipost-portal
-    gunzip < /root/backup-omnipost_portal-YYYY-MM-DD.sql.gz | \
-      sudo mysql -u omniportal -p omnipost_portal
-    sudo tar -xzf /root/backup-omnipost-uploads-YYYY-MM-DD.tar.gz \
-      -C /var/lib/omnipost-portal
-    sudo systemctl start omnipost-portal
-
-## Procedura aktualizacji
-
-Gdy pojawi się nowy kod (np. repo Git w `/var/www/omnipost-portal/`):
-
-    cd /var/www/omnipost-portal
-    sudo -u krzysztof -g www-data git pull            # jeśli repo istnieje
-    sudo -u krzysztof -g www-data venv/bin/pip install -r requirements.txt
-    sudo -u krzysztof -g www-data bash -c '
-      set -a; source /etc/omnipost-portal.env; set +a;
-      venv/bin/python manage.py migrate --noinput
-      venv/bin/python manage.py collectstatic --noinput
-    '
-    sudo systemctl restart omnipost-portal
-    sudo systemctl reload nginx
-
-## Testy bezpieczeństwa (wykonane)
-
-- Brak dostępu do `/dashboard/` i `/admin-panel/` bez logowania → 302.
-- Logowanie studenta → 302 na `/dashboard/`.
-- Upload pliku → wpis w `UploadedMaterial` + plik w `/var/lib/omnipost-portal/uploads/`.
-- Download własnego pliku → 200.
-- Upload bez CSRF → 403.
-- Download cudzego pliku (student2 → plik student1) → 403.
-
-## Ograniczenia i uwagi
-
-- Limit rozmiaru pliku: **25 MB** (`client_max_body_size 25M` w Nginx
-  + `MAX_UPLOAD_SIZE` w `submissions/forms.py`).
-- Dozwolone rozszerzenia zależą od typu: patrz `ALLOWED_BY_TYPE` w `forms.py`.
-- Pliki studentów **nie są wykonywane** na serwerze — są tylko przechowywane
-  i pobierane przez widok z kontrolą dostępu.
-- Kod studentów (rozpoznawanie półek, symulacja neuronu, SMS-y) **nie jest
-  jeszcze zintegrowany** — zostanie podłączony po otrzymaniu kodu, zgodnie
-  z zasadą „nie uruchamiamy nieznanego kodu na serwerze produkcyjnym".
-- `DEBUG=False`, `ALLOWED_HOSTS` ograniczone do `respublicacivium.pl`,
-  `www.respublicacivium.pl`, `127.0.0.1`, `localhost`.
-- `MEDIA_URL = "/private-uploads/"` — Nginx **nie serwuje** tego prefiksu;
-  pliki są dostępne wyłącznie przez widok `download` z kontrolą dostępu.
-
-## Kontakt / utrzymanie
-
-Administrator: krzysztof (konto systemowe na VPS + konto w portalu z rolą `admin`).

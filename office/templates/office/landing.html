@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OmniPost AI™ — SmartShelf Vision</title>
+<style>
+  :root { --bg:#050811; --card:rgba(15,23,42,.75); --cyan:#38bdf8; --purple:#a855f7; --emerald:#10b981; --text:#f8fafc; --muted:#94a3b8; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; overflow-x:hidden; line-height:1.6; }
+  .bg-grid { position:fixed; inset:0; z-index:-2; background-image:linear-gradient(to right,rgba(56,189,248,.07) 1px,transparent 1px),linear-gradient(to bottom,rgba(56,189,248,.07) 1px,transparent 1px); background-size:44px 44px; }
+  .orb { position:fixed; width:520px; height:520px; border-radius:50%; filter:blur(120px); z-index:-1; opacity:.35; pointer-events:none; }
+  .o1 { top:-150px; left:-100px; background:var(--cyan); }
+  .o2 { bottom:-150px; right:-100px; background:var(--purple); }
+  nav { max-width:1200px; margin:0 auto; padding:24px 32px; display:flex; justify-content:space-between; align-items:center; }
+  .brand { display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--text); font-size:1.4rem; font-weight:800; }
+  .brand span { color:var(--cyan); }
+  .tm { font-size:.65rem; vertical-align:super; color:var(--purple); }
+  .nav-links { display:flex; gap:12px; }
+  .btn { padding:10px 20px; border-radius:10px; font-weight:600; font-size:.9rem; text-decoration:none; transition:.2s; display:inline-flex; align-items:center; gap:8px; }
+  .btn-ghost { color:var(--text); border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.04); }
+  .btn-ghost:hover { border-color:var(--cyan); }
+  .btn-primary { background:linear-gradient(135deg,var(--cyan),#0284c7); color:#030712; font-weight:700; box-shadow:0 0 24px rgba(56,189,248,.4); }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow:0 0 36px rgba(56,189,248,.65); }
+  .hero { max-width:1200px; margin:25px auto 70px; padding:0 32px; display:grid; grid-template-columns:1.15fr .85fr; gap:44px; align-items:center; }
+  .badge { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:999px; background:rgba(168,85,247,.15); border:1px solid rgba(168,85,247,.4); color:#d8b4fe; font-size:.8rem; font-weight:600; margin-bottom:18px; }
+  .pulse { width:8px; height:8px; border-radius:50%; background:var(--emerald); box-shadow:0 0 10px var(--emerald); }
+  h1 { font-size:3.2rem; font-weight:850; line-height:1.12; margin-bottom:20px; }
+  h1 .grad { background:linear-gradient(90deg,#38bdf8,#a855f7,#34d399); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .lead { font-size:1.1rem; color:var(--muted); margin-bottom:28px; }
+  .actions { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:32px; }
+  .stats { display:flex; gap:32px; border-top:1px solid rgba(255,255,255,.1); padding-top:20px; }
+  .stat-val { font-size:1.6rem; font-weight:800; color:var(--cyan); }
+  .stat-lbl { font-size:.8rem; color:var(--muted); }
+  .scanner { background:var(--card); border:1px solid rgba(56,189,248,.3); border-radius:20px; padding:22px; box-shadow:0 25px 60px rgba(0,0,0,.65); }
+  .scan-hdr { display:flex; justify-content:space-between; font-size:.75rem; color:var(--cyan); font-family:monospace; margin-bottom:12px; }
+  .stage { position:relative; height:290px; border-radius:12px; background:linear-gradient(180deg,#0f172a,#1e293b); border:1px solid rgba(255,255,255,.08); overflow:hidden; }
+  .laser { position:absolute; left:0; right:0; height:3px; background:linear-gradient(90deg,transparent,var(--cyan),var(--emerald),transparent); box-shadow:0 0 18px var(--cyan); animation:scan 3.2s ease-in-out infinite; z-index:5; }
+  @keyframes scan { 0%,100% { top:8%; } 50% { top:90%; } }
+  .box { position:absolute; border:2px solid var(--emerald); border-radius:8px; background:rgba(16,185,129,.12); padding:10px; font-size:.85rem; }
+  .tag { position:absolute; top:-21px; left:-2px; background:var(--emerald); color:#022c22; font-size:.68rem; font-weight:800; padding:2px 8px; border-radius:4px 4px 4px 0; font-family:monospace; }
+  .b1 { top:42px; left:24px; width:46%; height:100px; }
+  .b2 { bottom:28px; right:24px; width:50%; height:105px; border-color:var(--purple); background:rgba(168,85,247,.12); }
+  .b2 .tag { background:var(--purple); color:#fff; }
+  .feed { margin-top:12px; font-family:monospace; font-size:.75rem; color:#a7f3d0; background:rgba(0,0,0,.45); padding:10px; border-radius:8px; }
+  .features { max-width:1200px; margin:0 auto 80px; padding:0 32px; display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+  .card { background:var(--card); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:26px; }
+  .card h3 { margin:12px 0 8px; font-size:1.15rem; }
+  .card p { color:var(--muted); font-size:.92rem; }
+  footer { border-top:1px solid rgba(255,255,255,.08); padding:24px; text-align:center; color:var(--muted); font-size:.82rem; }
+  @media(max-width:900px){ .hero,.features{ grid-template-columns:1fr; } h1{ font-size:2.3rem; } }
+</style>
+</head>
+<body>
+  <div class="bg-grid"></div><div class="orb o1"></div><div class="orb o2"></div>
+  <nav>
+    <a href="/" class="brand">
+      <svg width="38" height="38" viewBox="0 0 42 42" fill="none"><rect x="2" y="2" width="38" height="38" rx="11" fill="#38BDF8" fill-opacity=".15" stroke="#38BDF8" stroke-width="2.2"/><path d="M10 15L21 23L32 15" stroke="#38BDF8" stroke-width="2.4" stroke-linecap="round"/><rect x="10" y="13" width="22" height="16" rx="3" stroke="#F8FAFC" stroke-width="2"/><circle cx="31" cy="12" r="4" fill="#10B981"/></svg>
+      <div>Omni<span>Post</span> AI<span class="tm">™</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="/omnipost-portal/" class="btn btn-ghost">Portal Materiałów</a>
+      <a href="/admin/" class="btn btn-ghost">Admin</a>
+      <a href="/omnipost-portal/office/" class="btn btn-primary">Procesor AI →</a>
+    </div>
+  </nav>
+  <section class="hero">
+    <div>
+      <div class="badge"><span class="pulse"></span> SILNIK WIZYJNY YOLOv8 + OCR + VOICE AI</div>
+      <h1>Zamień zwykłą półkę w <span class="grad">inteligentny punkt odbioru</span> poczty.</h1>
+      <p class="lead">Zero drogich paczkomatów. Zero ręcznego spisywania kopert. Jedna kamera nad półką, szklaną skrzynką lub stertą listów wykrywa przesyłki i powiadamia odbiorców.</p>
+      <div class="actions">
+        <a href="/omnipost-portal/office/" class="btn btn-primary">Otwórz Panel Biura (Live Demo)</a>
+        <a href="/omnipost-portal/office/zones/" class="btn btn-ghost">Edytor Stref</a>
+      </div>
+      <div class="stats">
+        <div><div class="stat-val">-85%</div><div class="stat-lbl">Kosztów vs Smart Lockers</div></div>
+        <div><div class="stat-val">&lt; 0.4s</div><div class="stat-lbl">Czas detekcji AI</div></div>
+        <div><div class="stat-val">24/7</div><div class="stat-lbl">Alerty SMS &amp; Voice</div></div>
+      </div>
+    </div>
+    <div class="scanner">
+      <div class="scan-hdr"><span>CAM_01 // SMARTSHELF_VISION</span><span>CONF: 98.4%</span></div>
+      <div class="stage">
+        <div class="laser"></div>
+        <div class="box b1"><div class="tag">POLECONY 0.98</div>✉️ Strefa: Księgowość</div>
+        <div class="box b2"><div class="tag">PILNE_PISMO 0.95</div>📦 Odbiorca: Jan Kowalski</div>
+      </div>
+      <div class="feed">&gt; [DIFF-ENGINE] Wykryto nowy obiekt na stercie (+1)<br>&gt; [VOICE-AI] Wysłano SMS i Voice Call... OK</div>
+    </div>
+  </section>
+  <section class="features">
+    <div class="card"><div style="font-size:1.6rem;">👁️</div><h3>Dowolna przestrzeń</h3><p>Działa na otwartych regałach, w skrzynkach ze szklanymi drzwiczkami oraz w „porządku greckim” z kamerą z góry.</p></div>
+    <div class="card"><div style="font-size:1.6rem;">📞</div><h3>Asystent Głosowy &amp; SMS</h3><p>Automatycznie dzwoni z komunikatem głosowym i wysyła SMS, gdy zbliża się lub mija termin odbioru pisma.</p></div>
+    <div class="card"><div style="font-size:1.6rem;">⚡</div><h3>Analiza Różnicowa (Diff)</h3><p>Porównuje obraz przed i po, natychmiast wykrywając dołożenie nowej koperty lub jej odbiór przez pracownika.</p></div>
+  </section>
+  <footer>&copy; 2026 OmniPost AI™ — SmartShelf Vision Systems</footer>
+</body>
+</html>

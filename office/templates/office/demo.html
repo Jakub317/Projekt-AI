@@ -1,57 +1,104 @@
 ﻿{% extends "submissions/base.html" %}
-{% block title %}Procesor AI{% endblock %}
-{% block header_title %}Procesor AI — Analiza Zmian{% endblock %}
+{% block title %}Procesor AI — Kolejka i Detekcja{% endblock %}
+{% block header_title %}Procesor AI — Kolejka Zrzutów &amp; MMS{% endblock %}
 
 {% block content %}
-<div class="card">
-  <h3>Wybierz zdjęcia do analizy różnic</h3>
-  <div style="display:flex; gap:20px; margin:15px 0;">
-    <div style="flex:1;">
-      <label>Zdjęcie A (Baza)</label>
-      <select id="imgA" onchange="updatePreview('A')" style="width:100%; padding:10px; margin-top:5px;">
-        <option value="">-- Wybierz zdjęcie --</option>
-        {% for p in all_photos %}
-        <option value="{{ p.id }}" data-url="/omnipost-portal/office/photo/{{ p.pk }}/">{{ p.original_name|default:p.file.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div style="flex:1;">
-      <label>Zdjęcie B (Zmiany)</label>
-      <select id="imgB" onchange="updatePreview('B')" style="width:100%; padding:10px; margin-top:5px;">
-        <option value="">-- Wybierz zdjęcie --</option>
-        {% for p in all_photos %}
-        <option value="{{ p.id }}" data-url="/omnipost-portal/office/photo/{{ p.pk }}/">{{ p.original_name|default:p.file.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-  </div>
-  <button type="button" onclick="runDiff()" style="width:100%; height:48px; font-size:1.05rem; cursor:pointer; background:#0284c7; color:#fff; border:none; border-radius:8px; font-weight:bold;">
-    Zeskanuj i powiadom odbiorców
-  </button>
+<div class="card" style="border-left: 4px solid #f59e0b; background: #fffbeb; color: #78350f; margin-bottom: 18px;">
+  <strong>ℹ️ TRYB TESTOWY KOLEJKI ZDJĘĆ:</strong> Poniższa kolejka symuluje cykliczną pracę kamery. Każde przetworzone zdjęcie po konfrontacji automatycznie staje się <strong>nowym zdjęciem bazowym (referencyjnym)</strong> dla kolejnego ujęcia.
 </div>
 
-<div style="display:flex; gap:20px; margin-top:20px;">
-  <div class="card" style="flex:1;">
-    <h4>Obraz A (Baza)</h4>
-    <div id="wrapA" style="position:relative; background:#e2e8f0; min-height:220px; text-align:center; border-radius:8px; overflow:hidden;">
-      <span id="textA" style="line-height:220px; color:#64748b;">Brak zdjęcia</span>
-      <img id="previewA" style="display:none; width:100%; height:auto;">
+<div class="card" style="margin-bottom: 20px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h3 style="margin:0;">Tryb pracy silnika detekcji</h3>
+      <small style="color:#64748b;">Przełączaj między lokalnym porównywaniem obrazu a zewnętrznym API / APN</small>
     </div>
-  </div>
-  <div class="card" style="flex:1;">
-    <h4>Obraz B (Zmiany)</h4>
-    <div id="wrapB" style="position:relative; background:#e2e8f0; min-height:220px; text-align:center; border-radius:8px; overflow:hidden;">
-      <span id="textB" style="line-height:220px; color:#64748b;">Brak zdjęcia</span>
-      <img id="previewB" style="display:none; width:100%; height:auto;">
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <select id="detMode" style="padding:8px 12px; border-radius:6px; border:1px solid #cbd5e1;">
+        <option value="local" {% if config.mode == 'local' %}selected{% endif %}>Lokalny wzorzec / Model diff</option>
+        <option value="apn" {% if config.mode == 'apn' %}selected{% endif %}>Zewnętrzne API / APN</option>
+      </select>
+      <input type="text" id="apnUrl" value="{{ config.apn_url }}" placeholder="URL endpointu APN" style="padding:8px; border-radius:6px; border:1px solid #cbd5e1; width:220px;">
+      <input type="password" id="apnToken" value="{{ config.apn_token }}" placeholder="Token APN" style="padding:8px; border-radius:6px; border:1px solid #cbd5e1; width:140px;">
+      <button type="button" onclick="saveConfig()" style="padding:8px 16px; background:#0f172a; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Zapisz tryb</button>
     </div>
   </div>
 </div>
 
-<div id="devConsole" style="margin-top:20px; background:#0f172a; color:#38bdf8; font-family:monospace; padding:15px; border-radius:8px; max-height:220px; overflow-y:auto;">
+<div class="card" style="margin-bottom: 20px;">
+  <h3>Kolejka zdjęć kamery (Regał: {{ shelf.name }})</h3>
+  <div style="display:flex; gap:12px; margin:12px 0 18px; flex-wrap:wrap;">
+    <select id="queuePhotoSelect" style="flex:1; min-width:240px; padding:10px; border-radius:6px; border:1px solid #cbd5e1;">
+      <option value="">-- Wybierz zdjęcie z portalu, aby dodać do kolejki --</option>
+      {% for p in all_photos %}
+      <option value="{{ p.id }}">{{ p.original_name|default:p.file.name }} (ID: {{ p.id }})</option>
+      {% endfor %}
+    </select>
+    <button type="button" onclick="enqueuePhoto()" style="padding:10px 18px; background:#0284c7; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">+ Dodaj do kolejki</button>
+    <button type="button" onclick="processNext()" style="padding:10px 20px; background:#10b981; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:700;">▶ Konfrontuj następne z bazą</button>
+    <button type="button" onclick="resetQueue()" style="padding:10px 14px; background:#ef4444; color:#fff; border:none; border-radius:6px; cursor:pointer;">Reset kolejki</button>
+  </div>
+
+  <div style="display:flex; gap:20px; flex-wrap:wrap;">
+    <div style="flex:1; min-width:280px; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
+      <strong>📌 Aktualne zdjęcie bazowe:</strong>
+      {% if baseline %}
+        <div style="margin-top:8px;">
+          <span style="background:#dbeafe; color:#1e40af; padding:2px 8px; border-radius:4px; font-size:0.85rem;">Kolejka #{{ baseline.id }} | {{ baseline.photo.original_name|default:baseline.photo.file.name }}</span>
+          <img id="baseImgPreview" src="/omnipost-portal/office/photo/{{ baseline.photo.id }}/" style="display:block; width:100%; max-height:240px; object-fit:contain; margin-top:8px; border-radius:6px;">
+        </div>
+      {% else %}
+        <p style="color:#64748b; margin-top:8px;">Brak zdjęcia bazowego. Dodaj pierwsze zdjęcie do kolejki.</p>
+      {% endif %}
+    </div>
+
+    <div style="flex:1; min-width:280px; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
+      <strong>⏳ Oczekujące w kolejce ({{ pending_queue.count }}):</strong>
+      <ul style="margin-top:8px; padding-left:18px;">
+        {% for item in pending_queue %}
+          <li style="margin-bottom:6px;">
+            <strong>#{{ item.id }}</strong> — {{ item.photo.original_name|default:item.photo.file.name }}
+            {% if forloop.first %}<span style="background:#dcfce7; color:#166534; padding:2px 6px; border-radius:4px; font-size:0.8rem;">Następne</span>{% endif %}
+          </li>
+        {% empty %}
+          <li style="color:#64748b; list-style:none; margin-left:-18px;">Brak oczekujących zdjęć.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px;">
+  <div class="card" style="flex:1; min-width:300px;">
+    <h4>Podgląd ostatniej konfrontacji</h4>
+    <div id="wrapResult" style="position:relative; background:#e2e8f0; min-height:220px; text-align:center; border-radius:8px; overflow:hidden;">
+      <span id="textResult" style="line-height:220px; color:#64748b;">Uruchom konfrontację, aby zobaczyć ramki</span>
+      <img id="previewResult" style="display:none; width:100%; height:auto;">
+    </div>
+  </div>
+  <div class="card" style="flex:1; min-width:300px;">
+    <h4>Wygenerowane wycinki MMS</h4>
+    <div id="mmsGallery" style="display:flex; flex-wrap:wrap; gap:12px; margin-top:10px;">
+      {% for n in recent_notifications %}
+        {% if n.mms_image %}
+          <div style="border:1px solid #cbd5e1; border-radius:8px; padding:8px; width:180px; background:#f8fafc;">
+            <img src="/omnipost-portal/office/mms-crop/{{ n.mms_image }}/" style="width:100%; height:110px; object-fit:cover; border-radius:4px;">
+            <div style="font-size:0.8rem; font-weight:600; margin-top:4px;">{{ n.letter.recipient }}</div>
+          </div>
+        {% endif %}
+      {% empty %}
+        <span style="color:#64748b; font-size:0.9rem;">Brak wygenerowanych wycinków MMS.</span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+<div id="devConsole" style="background:#0f172a; color:#38bdf8; font-family:monospace; padding:15px; border-radius:8px; max-height:220px; overflow-y:auto;">
   <div style="color:#94a3b8;">&gt; Konsola Procesora AI gotowa.</div>
 </div>
 
 <script>
+const CSRF = '{{ csrf_token }}';
+
 function addLog(msg, type) {
   const c = document.getElementById('devConsole');
   const d = document.createElement('div');
@@ -62,54 +109,54 @@ function addLog(msg, type) {
   c.scrollTop = c.scrollHeight;
 }
 
-function updatePreview(side) {
-  const sel = document.getElementById('img' + side);
-  const img = document.getElementById('preview' + side);
-  const txt = document.getElementById('text' + side);
-  document.getElementById('wrap' + side).querySelectorAll('.yolo-box').forEach(e => e.remove());
-  if (sel.value) {
-    img.src = sel.options[sel.selectedIndex].getAttribute('data-url') + '?t=' + Date.now();
+function saveConfig() {
+  fetch('/omnipost-portal/office/api/config/', {
+    method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+    body: JSON.stringify({mode: document.getElementById('detMode').value, apn_url: document.getElementById('apnUrl').value, apn_token: document.getElementById('apnToken').value})
+  }).then(r => r.json()).then(res => addLog(res.status === 'ok' ? `[CONFIG] Tryb: ${res.mode.toUpperCase()}` : `[BŁĄD] ${res.message}`, res.status === 'ok' ? 'success' : 'error'));
+}
+
+function enqueuePhoto() {
+  const pid = document.getElementById('queuePhotoSelect').value;
+  if (!pid) { alert('Wybierz zdjęcie z listy!'); return; }
+  fetch('/omnipost-portal/office/api/queue/enqueue/', {
+    method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+    body: JSON.stringify({photo_id: pid})
+  }).then(r => r.json()).then(res => { if (res.status === 'ok') location.reload(); });
+}
+
+function resetQueue() {
+  fetch('/omnipost-portal/office/api/queue/reset/', {
+    method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF}
+  }).then(() => location.reload());
+}
+
+function processNext() {
+  addLog('[QUEUE] Konfrontacja z bazą...', 'info');
+  fetch('/omnipost-portal/office/api/queue/process-next/', {
+    method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF}
+  }).then(r => r.json()).then(res => {
+    if (res.status !== 'ok') { addLog(`[UWAGA] ${res.message}`, 'warn'); return; }
+    addLog(`[SUKCES] ${res.message}`, 'success');
+    (res.db_logs || []).forEach(l => addLog(`[POWIADOMIENIE] ${l}`, 'success'));
+    const img = document.getElementById('previewResult');
+    const wrap = document.getElementById('wrapResult');
+    wrap.querySelectorAll('.yolo-box').forEach(e => e.remove());
+    img.onload = function() {
+      const sx = img.clientWidth / 1000.0, sy = img.clientHeight / 800.0;
+      (res.boxes || []).forEach(f => {
+        const b = document.createElement('div');
+        b.className = 'yolo-box';
+        b.style.cssText = `position:absolute; border:2px solid #ef4444; background:rgba(239,68,68,0.25); left:${Math.round(f.x*sx)}px; top:${Math.round(f.y*sy)}px; width:${Math.round(f.w*sx)}px; height:${Math.round(f.h*sy)}px; pointer-events:none;`;
+        wrap.appendChild(b);
+      });
+    };
+    img.src = `/omnipost-portal/office/photo/${res.current_id}/?t=` + Date.now();
     img.style.display = 'block';
-    txt.style.display = 'none';
-  } else {
-    img.style.display = 'none';
-    txt.style.display = 'block';
-  }
-}
-
-function drawBoxes(side, frames) {
-  const wrap = document.getElementById('wrap' + side);
-  const img = document.getElementById('preview' + side);
-  wrap.querySelectorAll('.yolo-box').forEach(e => e.remove());
-  const sx = img.clientWidth ? img.clientWidth / 1000 : 0.4;
-  const sy = img.clientHeight ? img.clientHeight / 800 : 0.4;
-  frames.forEach(f => {
-    const b = document.createElement('div');
-    b.className = 'yolo-box';
-    b.style.cssText = `position:absolute; border:2px solid #ef4444; background:rgba(239,68,68,0.25); left:${Math.round(f.x*sx)}px; top:${Math.round(f.y*sy)}px; width:${Math.round(f.w*sx)}px; height:${Math.round(f.h*sy)}px; pointer-events:none;`;
-    wrap.appendChild(b);
-  });
-}
-
-function runDiff() {
-  const a = document.getElementById('imgA').value;
-  const b = document.getElementById('imgB').value;
-  if (!a || !b) { alert("Wybierz oba zdjęcia!"); return; }
-  addLog(`[INIT] Analiza Obrazu A (ID:${a}) i B (ID:${b})...`, 'info');
-  fetch('/omnipost-portal/office/api/analyze/', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-    body: JSON.stringify({img_a_id: a, img_b_id: b})
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (res.status !== 'ok') { addLog(`[BŁĄD] ${res.message}`, 'error'); return; }
-    addLog(`[YOLO] Wykryto w A: ${res.metrics.boxes_a}, w B: ${res.metrics.boxes_b}.`, 'info');
-    drawBoxes('A', res.raw_a || []);
-    drawBoxes('B', res.raw_b || []);
-    (res.db_logs || []).forEach(l => addLog(`[MARIADB] ${l}`, 'success'));
-  })
-  .catch(e => addLog(`[BŁĄD] ${e}`, 'error'));
+    document.getElementById('textResult').style.display = 'none';
+    const bImg = document.getElementById('baseImgPreview');
+    if (bImg) bImg.src = `/omnipost-portal/office/photo/${res.current_id}/?t=` + Date.now();
+  }).catch(e => addLog(`[BŁĄD] ${e}`, 'error'));
 }
 </script>
 {% endblock %}

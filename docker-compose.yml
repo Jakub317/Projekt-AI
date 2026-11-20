@@ -1,4 +1,4 @@
-services:
+﻿services:
   db:
     image: mariadb:10.11
     container_name: omnipost_db
@@ -20,6 +20,9 @@ services:
   web:
     build: .
     container_name: omnipost_web
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     restart: always
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
@@ -41,3 +44,4 @@ services:
 
 volumes:
   db_data:
+

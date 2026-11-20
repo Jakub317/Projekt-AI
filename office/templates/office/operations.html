@@ -14,7 +14,13 @@
             <input type="text" name="last_name" placeholder="Nazwisko" required style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
             <input type="email" name="email" placeholder="Email (opcjonalnie)" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
             <input type="text" name="phone" placeholder="Telefon (opcjonalnie)" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
-            <button type="submit" style="background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer;">Dodaj Pracownika</button>
+            <select name="preferred_channel" style="width:100%; padding:10px; margin-bottom:10px; border-radius:6px; border:1px solid #cbd5e1;">
+  <option value="mms" selected>MMS (wycinek strefy)</option>
+  <option value="sms">SMS tekstowy</option>
+  <option value="email">E-mail</option>
+  <option value="voice_call">Po??czenie g?osowe AI</option>
+</select>
+<button type="submit" style="background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer;">Dodaj Pracownika</button>
         </form>
     </div>
 

@@ -1,4 +1,4 @@
-﻿import base64
+import base64
 import io
 import json
 import os
@@ -10,7 +10,8 @@ from PIL import Image, ImageChops, ImageStat
 from django.conf import settings
 from django.core.files.storage import default_storage
 
-PROXY_BASE = "http://192.168.65.254:8899/v1beta"
+# POPRAWKA 1: Prawdziwy adres Google Gemini API zamiast martwego proxy
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
 
 def detect_local_diff(photo_before, photo_after):
@@ -38,7 +39,6 @@ def detect_local_diff(photo_before, photo_after):
     return []
 
 
-
 def _encode_image_b64(photo):
     if not photo or not default_storage.exists(photo.file.name):
         return None
@@ -49,50 +49,76 @@ def _encode_image_b64(photo):
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
+
 def _parse_gemini_boxes(text_out):
-    parsed = json.loads(text_out)
-    raw_list = parsed if isinstance(parsed, list) else parsed.get("boxes", [])
-    out = []
-    for item in raw_list:
-        if isinstance(item, dict) and "x" in item:
-            out.append({
-                "x": int(item.get("x", 0)),
-                "y": int(item.get("y", 0)),
-                "w": int(item.get("w", 100)),
-                "h": int(item.get("h", 100)),
-                "confidence": float(item.get("confidence", 0.92)),
-            })
-        elif isinstance(item, dict) and "box_2d" in item and len(item["box_2d"]) == 4:
-            ymin, xmin, ymax, xmax = item["box_2d"]
-            out.append({
-                "x": int(xmin),
-                "y": int(ymin * 0.8),
-                "w": int(xmax - xmin),
-                "h": int((ymax - ymin) * 0.8),
-                "confidence": 0.92,
-            })
-        elif isinstance(item, list) and len(item) == 4:
-            ymin, xmin, ymax, xmax = item
-            out.append({
-                "x": int(xmin),
-                "y": int(ymin * 0.8),
-                "w": int(xmax - xmin),
-                "h": int((ymax - ymin) * 0.8),
-                "confidence": 0.90,
-            })
-    return out
+    try:
+        # 1. Wyczyść tekst z ewentualnych znaczników markdown
+        clean_text = text_out.strip()
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        if clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+        clean_text = clean_text.strip()
 
-
+        # 2. Spróbuj sparsować wyczyszczony tekst
+        parsed = json.loads(clean_text)
+        raw_list = parsed if isinstance(parsed, list) else parsed.get("boxes", [])
+        out = []
+        
+        for item in raw_list:
+            if isinstance(item, dict) and "x" in item:
+                out.append({
+                    "x": int(item.get("x", 0)),
+                    "y": int(item.get("y", 0)),
+                    "w": int(item.get("w", 100)),
+                    "h": int(item.get("h", 100)),
+                    "confidence": float(item.get("confidence", 0.92)),
+                })
+            elif isinstance(item, dict) and "box_2d" in item and len(item["box_2d"]) == 4:
+                ymin, xmin, ymax, xmax = item["box_2d"]
+                out.append({
+                    "x": int(xmin),
+                    "y": int(ymin * 0.8),
+                    "w": int(xmax - xmin),
+                    "h": int((ymax - ymin) * 0.8),
+                    "confidence": 0.92,
+                })
+            elif isinstance(item, list) and len(item) == 4:
+                ymin, xmin, ymax, xmax = item
+                out.append({
+                    "x": int(xmin),
+                    "y": int(ymin * 0.8),
+                    "w": int(xmax - xmin),
+                    "h": int((ymax - ymin) * 0.8),
+                    "confidence": 0.90,
+                })
+        return out
+        
+    except json.JSONDecodeError as e:
+        # TO JEST KLUCZOWE: wypisze nam dokładnie, co zwróciło API, zamiast wysypywać serwer
+        print(f"=== DEBUG GEMINI JSON ERROR ===")
+        print(f"Błąd parsowania: {e}")
+        print(f"Surowy tekst od API: {text_out}")
+        print(f"===============================")
+        return []
+    except Exception as e:
+        print(f"=== DEBUG GEMINI UNEXPECTED ERROR ===")
+        print(f"Błąd: {e}")
+        print(f"=====================================")
+        return []
 def detect_via_apn(photo_after, config, photo_before=None):
-    token = (config.apn_token or "").strip()
+    # POPRAWKA 2: Najpierw sprawdzamy .env, potem bazę danych (dla kompatybilności)
+    token = os.getenv("GOOGLE_API_KEY") or (config.apn_token or "").strip()
     if not token:
-        raise RuntimeError("Brak klucza API (Token APN)!")
+        raise RuntimeError("Brak klucza API! Dodaj GOOGLE_API_KEY do pliku .env lub ustaw Token APN w panelu admina.")
 
     parts = [{
         "text": (
             "Porównaj dwa zdjęcia regału (PRZED i PO). Znajdź NOWE kartki lub koperty na drugim zdjęciu. "
             "Zwróć wyłącznie JSON: {\"boxes\": [{\"x\": 100, \"y\": 200, \"w\": 150, \"h\": 120, \"confidence\": 0.95}]} "
-            "w układzie 1000x800."
+            "w układzie 1000x800. Jeśli nie ma żadnych nowych obiektów, zwróć {\"boxes\": []}."
         )
     }]
 
@@ -109,36 +135,94 @@ def detect_via_apn(photo_after, config, photo_before=None):
         "generationConfig": {"response_mime_type": "application/json"}
     }).encode("utf-8")
 
-    models_to_try = ["gemini-flash-lite-latest", "gemini-flash-latest"]
+            # Jedyny aktualnie działający model (listopad 2026)
+    models_to_try = ["gemini-3.8-flash"]
+    last_err = ""
+    max_retries = 3  # Więcej prób przy przeciążeniu
+
+    for attempt in range(max_retries):
+        for model_name in models_to_try:
+            url = f"{GEMINI_BASE_URL}/models/{model_name}:generateContent?key={token}"
+            try:
+                req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+                with urllib.request.urlopen(req, timeout=90) as resp:
+                    raw_resp = json.loads(resp.read().decode("utf-8"))
+                    candidates = raw_resp.get("candidates", [])
+                    if not candidates:
+                        raise RuntimeError("Brak kandydatów w odpowiedzi API")
+                    
+                    parts_resp = candidates[0].get("content", {}).get("parts", [])
+                    if not parts_resp:
+                        raise RuntimeError("Brak części w odpowiedzi API")
+                        
+                    text_out = parts_resp[0].get("text", "")
+                    return _parse_gemini_boxes(text_out)
+                    
+            except urllib.error.HTTPError as e:
+                err_msg = e.read().decode("utf-8", errors="ignore")[:180]
+                last_err = f"HTTP {e.code} ({model_name}): {err_msg}"
+                
+                # Przy 503 (przeciążenie) lub 429 (rate limit) - czekamy i próbujemy ponownie
+                if e.code in (503, 429):
+                    wait_time = 3 * (attempt + 1)  # 3s, 6s, 9s - rosnąco
+                    print(f"[GEMINI] Serwer przeciążony, czekam {wait_time}s przed próbą #{attempt+2}...")
+                    time.sleep(wait_time)
+                    break  # Wyjdź z wewnętrznej pętli, aby powtórzyć zewnętrzną
+                raise RuntimeError(last_err)
+                
+            except Exception as e:
+                last_err = f"Błąd ({model_name}): {str(e)}"
+                continue
+
+    # Jeśli wszystkie próby się nie powiodły, zwracamy pusty wynik zamiast wysypywać aplikację
+    print(f"[GEMINI] Wszystkie próby nieudane: {last_err}. Przechodzę do lokalnej detekcji.")
+    return detect_local_diff(photo_before, photo_after)
     last_err = ""
 
     for model_name in models_to_try:
-        url = f"{PROXY_BASE}/models/{model_name}:generateContent?key={token}"
+        # POPRAWKA 3: Używamy prawdziwego URL Google zamiast PROXY_BASE
+        url = f"{GEMINI_BASE_URL}/models/{model_name}:generateContent?key={token}"
         try:
             req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
             with urllib.request.urlopen(req, timeout=90) as resp:
                 raw_resp = json.loads(resp.read().decode("utf-8"))
-                text_out = raw_resp["candidates"]["content"]["parts"]["text"]
+                # Bezpieczne wyciąganie tekstu z odpowiedzi Gemini
+                candidates = raw_resp.get("candidates", [])
+                if not candidates:
+                    raise RuntimeError("Brak kandydatów w odpowiedzi API")
+                
+                parts_resp = candidates[0].get("content", {}).get("parts", [])
+                if not parts_resp:
+                    raise RuntimeError("Brak części w odpowiedzi API")
+                    
+                text_out = parts_resp[0].get("text", "")
                 return _parse_gemini_boxes(text_out)
+                
         except urllib.error.HTTPError as e:
             err_msg = e.read().decode("utf-8", errors="ignore")[:180]
             last_err = f"HTTP {e.code} ({model_name}): {err_msg}"
-            if e.code == 503:
-                time.sleep(1.5)
+            if e.code == 503 or e.code == 429: # 429 = za dużo zapytań
+                time.sleep(2.0)
                 continue
             raise RuntimeError(last_err)
         except Exception as e:
             last_err = f"Błąd ({model_name}): {str(e)}"
             continue
 
-    raise RuntimeError(last_err)
+    raise RuntimeError(f"Nie udało się połączyć z Gemini: {last_err}")
 
 
 def detect_frames(photo_after, photo_before=None):
     from .models import DetectionConfig
     config = DetectionConfig.objects.first()
-    if config and config.mode == "apn":
+    
+    # Jeśli w bazie jest ustawiony tryb "apn" LUB mamy klucz w .env, używamy Gemini
+    use_gemini = (config and config.mode == "apn") or os.getenv("GOOGLE_API_KEY")
+    
+    if use_gemini:
         return detect_via_apn(photo_after, config, photo_before=photo_before)
+    
+    # Fallback do lokalnej detekcji różnic pikseli, jeśli nie ma klucza API
     return detect_local_diff(photo_before, photo_after)
 
 

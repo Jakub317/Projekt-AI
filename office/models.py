@@ -94,3 +94,23 @@ class RecipientZone(models.Model):
 
     def __str__(self):
         return f"{self.name or self.recipient} ({self.shelf.name})"
+
+class NotificationConfig(models.Model):
+    """Konfiguracja dostawców powiadomień (SMS/MMS/Email)"""
+    PROVIDER_CHOICES = [
+        ('demo', 'Tryb Demo (Tylko logi w konsoli - bezpieczne dla studentów)'),
+        ('twilio', 'Twilio (Płatne SMS/MMS)'),
+        ('smsapi', 'SMSAPI.pl'),
+        ('telegram', 'Telegram Bot (Darmowy)'),
+    ]
+    
+    sms_provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='demo')
+    mms_provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='demo')
+    email_provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='demo')
+    
+    class Meta:
+        verbose_name = "Konfiguracja Powiadomień"
+        verbose_name_plural = "Konfiguracja Powiadomień"
+
+    def __str__(self):
+        return "Ustawienia dostawców powiadomień"

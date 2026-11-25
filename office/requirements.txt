@@ -1,0 +1,12 @@
+Django>=4.2,<5.0
+Pillow>=10.0.0
+mysqlclient>=2.2.0
+python-dotenv>=1.0.0
+gunicorn>=21.2.0
+pymysql>=1.1.0
+
+# Lekkie biblioteki do porównywania obrazów (bez ciężkiego AI)
+opencv-python>=4.8.0
+numpy>=1.24.0
+requests>=2.31.0
+opencv-python-headless>=4.8.0

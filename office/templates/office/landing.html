@@ -53,30 +53,35 @@
 </head>
 <body>
   <div class="bg-grid"></div><div class="orb o1"></div><div class="orb o2"></div>
+  
   <nav>
     <a href="/" class="brand">
       <svg width="38" height="38" viewBox="0 0 42 42" fill="none"><rect x="2" y="2" width="38" height="38" rx="11" fill="#38BDF8" fill-opacity=".15" stroke="#38BDF8" stroke-width="2.2"/><path d="M10 15L21 23L32 15" stroke="#38BDF8" stroke-width="2.4" stroke-linecap="round"/><rect x="10" y="13" width="22" height="16" rx="3" stroke="#F8FAFC" stroke-width="2"/><circle cx="31" cy="12" r="4" fill="#10B981"/></svg>
       <div>Omni<span>Post</span> AI<span class="tm">™</span></div>
     </a>
     <div class="nav-links">
-      <a href="/omnipost-portal/" class="btn btn-ghost">Portal Materiałów</a>
-      <a href="/admin/" class="btn btn-ghost">Admin</a>
-      <a href="/omnipost-portal/office/" class="btn btn-primary">Procesor AI →</a>
+      <a href="/omnipost-portal/office/console/" class="btn btn-ghost">Konsola Systemowa</a>
+      <a href="/admin/" class="btn btn-ghost">Panel Admina</a>
+      <a href="/omnipost-portal/office/" class="btn btn-primary">Uruchom Procesor AI →</a>
     </div>
   </nav>
+
   <section class="hero">
     <div>
-      <div class="badge"><span class="pulse"></span> SILNIK WIZYJNY YOLOv8 + OCR + VOICE AI</div>
+      <div class="badge"><span class="pulse"></span> YOLOv8 + OCR + VOICE AI + PORZĄDEK GRECKI</div>
       <h1>Zamień zwykłą półkę w <span class="grad">inteligentny punkt odbioru</span> poczty.</h1>
-      <p class="lead">Zero drogich paczkomatów. Zero ręcznego spisywania kopert. Jedna kamera nad półką, szklaną skrzynką lub stertą listów wykrywa przesyłki i powiadamia odbiorców.</p>
+      <p class="lead">Zero drogich paczkomatów. Jedna kamera wykrywa przesyłki, czyta dokumenty (OCR), pilnuje bałaganu (Porządek Grecki) i automatycznie powiadamia odbiorców przez SMS, MMS lub Voice Call.</p>
+      
+      <!-- TUTAJ USUNIĘTO ZDUPLIKOWANY LINK DO OPERATIONS -->
       <div class="actions">
-        <a href="/omnipost-portal/office/" class="btn btn-primary">Otwórz Panel Biura (Live Demo)</a>
-        <a href="/omnipost-portal/office/zones/" class="btn btn-ghost">Edytor Stref</a>
+        <a href="/omnipost-portal/office/" class="btn btn-primary">🚀 Otwórz Procesor AI (Live Demo)</a>
+        <a href="/admin/" class="btn btn-ghost">⚙️ Panel Administratora</a>
       </div>
+
       <div class="stats">
         <div><div class="stat-val">-85%</div><div class="stat-lbl">Kosztów vs Smart Lockers</div></div>
         <div><div class="stat-val">&lt; 0.4s</div><div class="stat-lbl">Czas detekcji AI</div></div>
-        <div><div class="stat-val">24/7</div><div class="stat-lbl">Alerty SMS &amp; Voice</div></div>
+        <div><div class="stat-val">24/7</div><div class="stat-lbl">Alerty SMS, MMS &amp; Voice</div></div>
       </div>
     </div>
     <div class="scanner">
@@ -86,14 +91,28 @@
         <div class="box b1"><div class="tag">POLECONY 0.98</div>✉️ Strefa: Księgowość</div>
         <div class="box b2"><div class="tag">PILNE_PISMO 0.95</div>📦 Odbiorca: Jan Kowalski</div>
       </div>
-      <div class="feed">&gt; [DIFF-ENGINE] Wykryto nowy obiekt na stercie (+1)<br>&gt; [VOICE-AI] Wysłano SMS i Voice Call... OK</div>
+      <div class="feed">&gt; [DIFF-ENGINE] Wykryto nowy obiekt (+1)<br>&gt; [OCR] Odczytano: "Jan Kowalski, ul. Polna 1"<br>&gt; [VOICE-AI] Wysłano SMS i Voice Call... OK<br>&gt; [CHAOS-DETECT] Półka czysta, brak bałaganu.</div>
     </div>
   </section>
+
   <section class="features">
-    <div class="card"><div style="font-size:1.6rem;">👁️</div><h3>Dowolna przestrzeń</h3><p>Działa na otwartych regałach, w skrzynkach ze szklanymi drzwiczkami oraz w „porządku greckim” z kamerą z góry.</p></div>
-    <div class="card"><div style="font-size:1.6rem;">📞</div><h3>Asystent Głosowy &amp; SMS</h3><p>Automatycznie dzwoni z komunikatem głosowym i wysyła SMS, gdy zbliża się lub mija termin odbioru pisma.</p></div>
-    <div class="card"><div style="font-size:1.6rem;">⚡</div><h3>Analiza Różnicowa (Diff)</h3><p>Porównuje obraz przed i po, natychmiast wykrywając dołożenie nowej koperty lub jej odbiór przez pracownika.</p></div>
+    <div class="card">
+      <div style="font-size:1.6rem;">👁️</div>
+      <h3>Dowolna przestrzeń + Porządek Grecki</h3>
+      <p>Działa na otwartych regałach i w skrzynkach. Wykrywa nie tylko przesyłki, ale też bałagan i przedmioty pozostawione poza wyznaczonymi strefami pracowniczymi.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:1.6rem;">📞</div>
+      <h3>Asystent Głosowy, SMS &amp; MMS</h3>
+      <p>Automatycznie dzwoni z komunikatem głosowym i wysyła SMS/MMS z miniaturą przesyłki, gdy zbliża się lub mija termin odbioru pisma.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:1.6rem;">⚡</div>
+      <h3>Analiza Różnicowa (Diff) + OCR</h3>
+      <p>Porównuje obrazy przed i po, natychmiast wykrywając zmiany. Gemini AI odczytuje dane z korespondencji, automatycznie przypisując ją do pracownika.</p>
+    </div>
   </section>
-  <footer>&copy; 2026 OmniPost AI™ — SmartShelf Vision Systems</footer>
+
+  <footer>&copy; 2026 OmniPost AI™ — SmartShelf Vision Systems. Projekt edukacyjny.</footer>
 </body>
 </html>

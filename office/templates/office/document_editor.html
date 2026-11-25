@@ -1,0 +1,110 @@
+﻿{% extends "office/demo.html" %}
+{% block content %}
+<div style="max-width:1400px;margin:0 auto;padding:20px;">
+  <h2 style="color:#fff;margin-bottom:20px;"> Edytor Dokumentów i Terminów</h2>
+  
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:15px;margin-bottom:25px;">
+    <div style="background:#1e293b;padding:15px;border-radius:8px;border-left:4px solid #3b82f6;">
+      <div style="color:#94a3b8;font-size:12px;">Łącznie</div>
+      <div style="color:#fff;font-size:24px;font-weight:bold;">{{ stats.total }}</div>
+    </div>
+    <div style="background:#1e293b;padding:15px;border-radius:8px;border-left:4px solid #f59e0b;">
+      <div style="color:#94a3b8;font-size:12px;">Oczekujące</div>
+      <div style="color:#fff;font-size:24px;font-weight:bold;">{{ stats.pending }}</div>
+    </div>
+    <div style="background:#1e293b;padding:15px;border-radius:8px;border-left:4px solid #10b981;">
+      <div style="color:#94a3b8;font-size:12px;">Odebrane</div>
+      <div style="color:#fff;font-size:24px;font-weight:bold;">{{ stats.delivered }}</div>
+    </div>
+    <div style="background:#1e293b;padding:15px;border-radius:8px;border-left:4px solid #ef4444;">
+      <div style="color:#94a3b8;font-size:12px;">Przeterminowane</div>
+      <div style="color:#ef4444;font-size:24px;font-weight:bold;">{{ stats.overdue }}</div>
+    </div>
+    <div style="background:#1e293b;padding:15px;border-radius:8px;border-left:4px solid #fbbf24;">
+      <div style="color:#94a3b8;font-size:12px;">Pilne (3 dni)</div>
+      <div style="color:#fbbf24;font-size:24px;font-weight:bold;">{{ stats.urgent }}</div>
+    </div>
+  </div>
+
+  <div style="background:#1e293b;padding:20px;border-radius:8px;margin-bottom:25px;">
+    <h3 style="color:#fff;margin-top:0;"> Dodaj nowy dokument</h3>
+    <form method="post" style="display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:end;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <div>
+        <label style="color:#94a3b8;font-size:12px;">Pracownik</label>
+        <select name="recipient_id" required style="width:100%;padding:8px;background:#0f172a;color:#fff;border:1px solid #334155;border-radius:4px;">
+          {% for r in recipients %}<option value="{{ r.id }}">{{ r }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="color:#94a3b8;font-size:12px;">Typ dokumentu</label>
+        <select name="doc_type" style="width:100%;padding:8px;background:#0f172a;color:#fff;border:1px solid #334155;border-radius:4px;">
+          <option>Wezwanie</option><option>Faktura</option><option>List polecony</option>
+          <option>Pismo urzędowe</option><option>Przesyłka</option><option>Inne</option>
+        </select>
+      </div>
+      <div>
+        <label style="color:#94a3b8;font-size:12px;">Termin odbioru</label>
+        <input type="date" name="due_date" required value="{{ today|date:'Y-m-d' }}" style="width:100%;padding:8px;background:#0f172a;color:#fff;border:1px solid #334155;border-radius:4px;">
+      </div>
+      <div></div>
+      <button type="submit" style="padding:8px 16px;background:#10b981;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;">Dodaj</button>
+    </form>
+  </div>
+
+  <div style="background:#1e293b;padding:20px;border-radius:8px;">
+    <h3 style="color:#fff;margin-top:0;"> Lista dokumentów</h3>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:2px solid #334155;">
+          <th style="padding:10px;text-align:left;color:#94a3b8;">Pracownik</th>
+          <th style="padding:10px;text-align:left;color:#94a3b8;">Typ</th>
+          <th style="padding:10px;text-align:left;color:#94a3b8;">Termin</th>
+          <th style="padding:10px;text-align:left;color:#94a3b8;">Status</th>
+          <th style="padding:10px;text-align:left;color:#94a3b8;">Akcje</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for letter in letters %}
+        <tr style="border-bottom:1px solid #334155;">
+          <td style="padding:10px;color:#fff;">{{ letter.recipient }}</td>
+          <td style="padding:10px;color:#fff;">{{ letter.document_type }}</td>
+          <td style="padding:10px;color:{% if letter.status == 'pending' and letter.due_date < today %}#ef4444{% elif letter.status == 'pending' and letter.due_date <= today|add:'3:0:0:0' %}#fbbf24{% else %}#10b981{% endif %};font-weight:600;">
+            {{ letter.due_date|date:"Y-m-d" }}
+            {% if letter.status == 'pending' %}
+              {% if letter.due_date < today %}(PRZETERMINOWANE){% elif letter.due_date == today %}(DZIŚ){% endif %}
+            {% endif %}
+          </td>
+          <td style="padding:10px;">
+            <span style="padding:4px 8px;border-radius:4px;font-size:12px;background:{% if letter.status == 'pending' %}#f59e0b{% elif letter.status == 'delivered' %}#10b981{% elif letter.status == 'overdue' %}#ef4444{% else %}#64748b{% endif %};color:#fff;">
+              {{ letter.get_status_display }}
+            </span>
+          </td>
+          <td style="padding:10px;">
+            <form method="post" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="update_status">
+              <input type="hidden" name="letter_id" value="{{ letter.id }}">
+              <select name="status" onchange="this.form.submit()" style="padding:4px;background:#0f172a;color:#fff;border:1px solid #334155;border-radius:4px;">
+                <option value="pending" {% if letter.status == 'pending' %}selected{% endif %}>Oczekuje</option>
+                <option value="delivered" {% if letter.status == 'delivered' %}selected{% endif %}>Odebrane</option>
+                <option value="overdue" {% if letter.status == 'overdue' %}selected{% endif %}>Przeterminowane</option>
+              </select>
+            </form>
+            <form method="post" style="display:inline;margin-left:5px;" onsubmit="return confirm('Usunąć dokument?')">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="letter_id" value="{{ letter.id }}">
+              <button type="submit" style="padding:4px 8px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;"></button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="padding:20px;text-align:center;color:#64748b;">Brak dokumentów</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

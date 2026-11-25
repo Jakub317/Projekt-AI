@@ -1,7 +1,8 @@
-﻿from django.contrib import admin
+from django.contrib import admin
 from .models import AuditLog, UploadedMaterial, UserProfile
 import hashlib
 import mimetypes
+
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
@@ -10,13 +11,14 @@ class UserProfileAdmin(admin.ModelAdmin):
     search_fields = ("user__username", "user__email")
     readonly_fields = ("created_at",)
 
+
 @admin.register(UploadedMaterial)
 class UploadedMaterialAdmin(admin.ModelAdmin):
     list_display = (
-        "original_name", "material_type", "status",
+        "original_name", "material_type", "camera_source", "status",
         "uploaded_by", "size_bytes", "uploaded_at",
     )
-    list_filter = ("material_type", "status", "uploaded_at")
+    list_filter = ("material_type", "camera_source", "status", "uploaded_at")
     search_fields = ("original_name", "sha256", "uploaded_by__username")
     readonly_fields = ("sha256", "size_bytes", "mime_type", "uploaded_at")
     date_hierarchy = "uploaded_at"
@@ -37,6 +39,7 @@ class UploadedMaterialAdmin(admin.ModelAdmin):
         if not obj.uploaded_by:
             obj.uploaded_by = request.user
         super().save_model(request, obj, form, change)
+
 
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):

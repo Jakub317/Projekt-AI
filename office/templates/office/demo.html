@@ -3,160 +3,425 @@
 {% block header_title %}Procesor AI — Kolejka Zrzutów &amp; MMS{% endblock %}
 
 {% block content %}
-<div class="card" style="border-left: 4px solid #f59e0b; background: #fffbeb; color: #78350f; margin-bottom: 18px;">
-  <strong>ℹ️ TRYB TESTOWY KOLEJKI ZDJĘĆ:</strong> Poniższa kolejka symuluje cykliczną pracę kamery. Każde przetworzone zdjęcie po konfrontacji automatycznie staje się <strong>nowym zdjęciem bazowym (referencyjnym)</strong> dla kolejnego ujęcia.
+<style>
+  .mode-switcher{display:flex;gap:0;background:#f1f5f9;border-radius:12px;padding:4px;margin-bottom:20px;border:1px solid #e2e8f0;}
+  .mode-btn{flex:1;padding:12px 20px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-weight:600;font-size:.95rem;color:#64748b;transition:all .25s ease;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .mode-btn:hover{color:#334155;background:rgba(255,255,255,.5);}
+  .mode-btn.active{background:#fff;color:#0f172a;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+  .mode-btn.active.mode-greek{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#78350f;}
+  .mode-btn.active.mode-normal{background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e3a8a;}
+  .mode-panel{display:none;}
+  .mode-panel.active{display:block;animation:fadeIn .3s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .sub-head{margin:26px 0 10px;padding-top:16px;border-top:2px dashed #cbd5e1;color:#334155;}
+
+  #toast-container{position:fixed;top:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:12px;pointer-events:none;}
+  .ai-toast{pointer-events:auto;position:relative;overflow:hidden;cursor:pointer;background:rgba(15,23,42,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.12);border-left:4px solid var(--accent,#38bdf8);border-radius:14px;padding:13px 16px;min-width:290px;max-width:340px;display:flex;gap:13px;align-items:center;box-shadow:0 12px 34px rgba(0,0,0,.45);color:#f8fafc;font-family:'Segoe UI',system-ui,sans-serif;animation:toastIn .45s cubic-bezier(.18,.89,.32,1.28) forwards;}
+  .ai-toast:hover{transform:translateX(-4px);}
+  .ai-toast.hiding{animation:toastOut .35s ease-in forwards;}
+  @keyframes toastIn{0%{transform:translateX(120%) scale(.9);opacity:0}100%{transform:translateX(0) scale(1);opacity:1}}
+  @keyframes toastOut{0%{transform:translateX(0);opacity:1}100%{transform:translateX(120%);opacity:0}}
+  .ai-toast .ic{font-size:1.7rem;line-height:1;animation:icPulse 1.6s ease-in-out infinite;}
+  @keyframes icPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+  .ai-toast .tt{font-weight:700;font-size:.9rem;margin-bottom:2px;}
+  .ai-toast .tm{font-size:.78rem;color:#cbd5e1;line-height:1.35;}
+  .ai-toast .bar{position:absolute;left:0;bottom:0;height:3px;background:var(--accent,#38bdf8);width:100%;animation:barRun 5s linear forwards;}
+  @keyframes barRun{from{width:100%}to{width:0}}
+  .t-telegram{--accent:#2AABEE}.t-mms{--accent:#10b981}.t-email{--accent:#f59e0b}
+  .t-voice_call{--accent:#ef4444}.t-sms{--accent:#a855f7}.t-chaos{--accent:#eab308}.t-ocr{--accent:#38bdf8}
+</style>
+
+<div id="toast-container"></div>
+
+<div class="mode-switcher">
+  <button type="button" class="mode-btn mode-normal active" onclick="switchMode('normal')">
+    📦 Porządek Normalny — kamera frontowa (półki)
+  </button>
+  <button type="button" class="mode-btn mode-greek" onclick="switchMode('greek')">
+    🏛️ Porządek Grecki — kamera górna (sterta pism)
+  </button>
 </div>
 
-<div class="card" style="margin-bottom: 20px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-    <div>
-      <h3 style="margin:0;">Tryb pracy silnika detekcji</h3>
-      <small style="color:#64748b;">Przełączaj między lokalnym porównywaniem obrazu a zewnętrznym API / APN</small>
-    </div>
-    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-      <select id="detMode" style="padding:8px 12px; border-radius:6px; border:1px solid #cbd5e1;">
-        <option value="local" {% if config.mode == 'local' %}selected{% endif %}>Lokalny wzorzec / Model diff</option>
-        <option value="apn" {% if config.mode == 'apn' %}selected{% endif %}>Zewnętrzne API / APN</option>
-      </select>
-      <input type="text" id="apnUrl" value="{{ config.apn_url }}" placeholder="URL endpointu APN" style="padding:8px; border-radius:6px; border:1px solid #cbd5e1; width:220px;">
-      <input type="password" id="apnToken" value="{{ config.apn_token }}" placeholder="Token APN" style="padding:8px; border-radius:6px; border:1px solid #cbd5e1; width:140px;">
-      <button type="button" onclick="saveConfig()" style="padding:8px 16px; background:#0f172a; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Zapisz tryb</button>
-    </div>
-  </div>
-</div>
+<!-- ============================================================ -->
+<!-- ===== TRYB 1: PORZĄDEK NORMALNY (półki + bałagan) ===== -->
+<!-- ============================================================ -->
+<div id="mode-normal" class="mode-panel active">
 
-<div class="card" style="margin-bottom: 20px;">
-  <h3>Kolejka zdjęć kamery (Regał: {{ shelf.name }})</h3>
-  <div style="display:flex; gap:12px; margin:12px 0 18px; flex-wrap:wrap;">
-    <select id="queuePhotoSelect" style="flex:1; min-width:240px; padding:10px; border-radius:6px; border:1px solid #cbd5e1;">
-      <option value="">-- Wybierz zdjęcie z portalu, aby dodać do kolejki --</option>
-      {% for p in all_photos %}
-      <option value="{{ p.id }}">{{ p.original_name|default:p.file.name }} (ID: {{ p.id }})</option>
-      {% endfor %}
-    </select>
-    <button type="button" onclick="enqueuePhoto()" style="padding:10px 18px; background:#0284c7; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">+ Dodaj do kolejki</button>
-    <button type="button" onclick="processNext()" style="padding:10px 20px; background:#10b981; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:700;">▶ Konfrontuj następne z bazą</button>
-    <button type="button" onclick="resetQueue()" style="padding:10px 14px; background:#ef4444; color:#fff; border:none; border-radius:6px; cursor:pointer;">Reset kolejki</button>
+  <div class="card" style="border-left:4px solid #f59e0b;background:#fffbeb;color:#78350f;margin-bottom:18px;">
+    <strong>ℹ️ KAMERA FRONTOWA:</strong> Kolejka symuluje cykliczną pracę kamery na półkę. Każde przetworzone zdjęcie staje się <strong>nowym zdjęciem bazowym</strong>. Przesyłki w strefach → powiadomienie <strong>pracownika</strong>. Obiekty poza strefami → powiadomienie <strong>Administratora</strong>.
   </div>
 
-  <div style="display:flex; gap:20px; flex-wrap:wrap;">
-    <div style="flex:1; min-width:280px; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
-      <strong>📌 Aktualne zdjęcie bazowe:</strong>
-      {% if baseline %}
-        <div style="margin-top:8px;">
-          <span style="background:#dbeafe; color:#1e40af; padding:2px 8px; border-radius:4px; font-size:0.85rem;">Kolejka #{{ baseline.id }} | {{ baseline.photo.original_name|default:baseline.photo.file.name }}</span>
-          <img id="baseImgPreview" src="/omnipost-portal/office/photo/{{ baseline.photo.id }}/" style="display:block; width:100%; max-height:240px; object-fit:contain; margin-top:8px; border-radius:6px;">
-        </div>
-      {% else %}
-        <p style="color:#64748b; margin-top:8px;">Brak zdjęcia bazowego. Dodaj pierwsze zdjęcie do kolejki.</p>
-      {% endif %}
+  <div class="card" style="margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h3 style="margin:0;">Tryb pracy silnika detekcji</h3>
+        <small style="color:#64748b;">Lokalne porównywanie obrazu lub zewnętrzne API / APN</small>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <select id="detMode" style="padding:8px 12px;border-radius:6px;border:1px solid #cbd5e1;">
+          <option value="local" {% if config.mode == 'local' %}selected{% endif %}>Lokalny wzorzec / Model diff</option>
+          <option value="apn" {% if config.mode == 'apn' %}selected{% endif %}>Zewnętrzne API / APN</option>
+        </select>
+        <input type="text" id="apnUrl" value="{{ config.apn_url }}" placeholder="URL endpointu APN" style="padding:8px;border-radius:6px;border:1px solid #cbd5e1;width:220px;">
+        <input type="password" id="apnToken" value="{{ config.apn_token }}" placeholder="Token APN" style="padding:8px;border-radius:6px;border:1px solid #cbd5e1;width:140px;">
+        <button type="button" onclick="saveConfig()" style="padding:8px 16px;background:#0f172a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Zapisz tryb</button>
+      </div>
     </div>
+  </div>
 
-    <div style="flex:1; min-width:280px; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
-      <strong>⏳ Oczekujące w kolejce ({{ pending_queue.count }}):</strong>
-      <ul style="margin-top:8px; padding-left:18px;">
-        {% for item in pending_queue %}
-          <li style="margin-bottom:6px;">
-            <strong>#{{ item.id }}</strong> — {{ item.photo.original_name|default:item.photo.file.name }}
-            {% if forloop.first %}<span style="background:#dcfce7; color:#166534; padding:2px 6px; border-radius:4px; font-size:0.8rem;">Następne</span>{% endif %}
-          </li>
-        {% empty %}
-          <li style="color:#64748b; list-style:none; margin-left:-18px;">Brak oczekujących zdjęć.</li>
+  <div class="card" style="margin-bottom:20px;">
+    <h3>Kolejka zdjęć kamery frontowej (Regał: {{ shelf.name }})</h3>
+    <div style="display:flex;gap:12px;margin:12px 0 18px;flex-wrap:wrap;">
+      <select id="queuePhotoSelect" style="flex:1;min-width:240px;padding:10px;border-radius:6px;border:1px solid #cbd5e1;">
+        <option value="">-- Wybierz zdjęcie z portalu, aby dodać do kolejki --</option>
+        {% for p in front_photos %}
+        <option value="{{ p.id }}">{{ p.original_name|default:p.file.name }} (ID: {{ p.id }})</option>
         {% endfor %}
-      </ul>
+      </select>
+      <button type="button" onclick="enqueuePhoto()" style="padding:10px 18px;background:#0284c7;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">+ Dodaj do kolejki</button>
+      <button type="button" onclick="processNext()" style="padding:10px 20px;background:#10b981;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;">▶ Konfrontuj następne z bazą</button>
+      <button type="button" onclick="resetQueue()" style="padding:10px 14px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;">Reset kolejki</button>
+      <button type="button" onclick="demoToasts()" style="padding:10px 14px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;">🔔 Test powiadomień</button>
+    </div>
+
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:280px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
+        <strong>📌 Aktualne zdjęcie bazowe:</strong>
+        {% if baseline %}
+          <div style="margin-top:8px;">
+            <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:.85rem;">Kolejka #{{ baseline.id }} | {{ baseline.photo.original_name|default:baseline.photo.file.name }}</span>
+            <img id="baseImgPreview" src="/omnipost-portal/office/photo/{{ baseline.photo.id }}/" style="display:block;width:100%;max-height:240px;object-fit:contain;margin-top:8px;border-radius:6px;">
+          </div>
+        {% else %}
+          <p style="color:#64748b;margin-top:8px;">Brak zdjęcia bazowego. Dodaj pierwsze zdjęcie do kolejki.</p>
+        {% endif %}
+      </div>
+      <div style="flex:1;min-width:280px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
+        <strong>⏳ Oczekujące w kolejce ({{ pending_queue.count }}):</strong>
+        <ul style="margin-top:8px;padding-left:18px;">
+          {% for item in pending_queue %}
+            <li style="margin-bottom:6px;">
+              <strong>#{{ item.id }}</strong> — {{ item.photo.original_name|default:item.photo.file.name }}
+              {% if forloop.first %}<span style="background:#dcfce7;color:#166534;padding:2px 6px;border-radius:4px;font-size:.8rem;">Następne</span>{% endif %}
+            </li>
+          {% empty %}
+            <li style="color:#64748b;list-style:none;margin-left:-18px;">Brak oczekujących zdjęć.</li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
   </div>
+
+  <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;">
+    <div class="card" style="flex:1;min-width:300px;">
+      <h4>Podgląd ostatniej konfrontacji</h4>
+      <div id="wrapResult" style="position:relative;background:#e2e8f0;min-height:220px;text-align:center;border-radius:8px;overflow:hidden;">
+        <span id="textResult" style="line-height:220px;color:#64748b;">Uruchom konfrontację, aby zobaczyć ramki</span>
+        <img id="previewResult" style="display:none;width:100%;height:auto;">
+      </div>
+    </div>
+    <div class="card" style="flex:1;min-width:300px;">
+      <h4>Wygenerowane wycinki MMS</h4>
+      <div id="mmsGallery" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;">
+        {% for n in recent_notifications %}
+          {% if n.mms_image %}
+            <div style="border:1px solid #cbd5e1;border-radius:8px;padding:8px;width:180px;background:#f8fafc;">
+              <img src="/omnipost-portal/office/mms-crop/{{ n.mms_image }}/" style="width:100%;height:110px;object-fit:cover;border-radius:4px;">
+              <div style="font-size:.8rem;font-weight:600;margin-top:4px;">{{ n.letter.recipient }}</div>
+            </div>
+          {% endif %}
+        {% empty %}
+          <span style="color:#64748b;font-size:.9rem;">Brak wygenerowanych wycinków MMS.</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <h3 class="sub-head">🗑️ Funkcja dodatkowa: bałagan poza strefami (ta sama kamera)</h3>
+
+  <div class="card" style="border-left:4px solid #eab308;background:#fefce8;color:#713f12;margin-bottom:16px;">
+    Obiekty pozostawione <strong>poza strefami pracowników</strong> nie są przypisywane do pracownika. Zgłoszenie trafia do <strong>Administratora</strong> wybranym przez niego kanałem (SMS / MMS / E-mail / Telegram / Voice).
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+      <button type="button" onclick="detectChaos()" id="chaosBtn" style="padding:14px 26px;background:linear-gradient(135deg,#eab308,#ca8a04);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;">
+        🗑️ Wykryj bałagan poza strefami
+      </button>
+      <span id="chaosStatus" style="color:#64748b;font-size:.9rem;">Gotowy do skanowania.</span>
+    </div>
+    <div id="chaosReportsList" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="card">
+    <h4>🔗 Konfiguracja trybu normalnego</h4>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="/omnipost-portal/office/zones/" style="padding:10px 18px;background:#6366f1;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">🗺️ Edytor stref pracowników</a>
+      <a href="/admin/office/chaosreport/" style="padding:10px 18px;background:#0f172a;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">🗑️ Zgłoszenia bałaganu</a>
+      <a href="/admin/office/administrator/" style="padding:10px 18px;background:#b45309;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">👤 Administratorzy (odbiorcy bałaganu)</a>
+    </div>
+  </div>
+
 </div>
 
-<div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px;">
-  <div class="card" style="flex:1; min-width:300px;">
-    <h4>Podgląd ostatniej konfrontacji</h4>
-    <div id="wrapResult" style="position:relative; background:#e2e8f0; min-height:220px; text-align:center; border-radius:8px; overflow:hidden;">
-      <span id="textResult" style="line-height:220px; color:#64748b;">Uruchom konfrontację, aby zobaczyć ramki</span>
-      <img id="previewResult" style="display:none; width:100%; height:auto;">
+<!-- ============================================================ -->
+<!-- ===== TRYB 2: PORZĄDEK GRECKI (sterta + OCR) ===== -->
+<!-- ============================================================ -->
+<div id="mode-greek" class="mode-panel">
+
+  <div class="card" style="border-left:4px solid #eab308;background:#fefce8;color:#713f12;margin-bottom:18px;">
+    <strong>🏛️ KAMERA GÓRNA (osobne urządzenie):</strong> Kamera patrzy w dół na stół / stertę pism. System wykrywa <strong>nowe przesyłki</strong> i uruchamia <strong>OCR (Gemini)</strong>: adresat, nadawca, numer przesyłki, typ i data dokumentu. Każda zmiana trafia do <strong>archiwum dnia pracy</strong>.
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <h3>Sterta pism — skan OCR</h3>
+    <div style="display:flex;gap:12px;margin:12px 0 8px;flex-wrap:wrap;">
+      <select id="pilePhotoSelect" style="flex:1;min-width:240px;padding:10px;border-radius:6px;border:1px solid #cbd5e1;">
+        <option value="">-- Wybierz zdjęcie z kamery górnej (z portalu) --</option>
+        {% for p in top_photos %}
+        <option value="{{ p.id }}">{{ p.original_name|default:p.file.name }} (ID: {{ p.id }})</option>
+        {% endfor %}
+      </select>
+      <button type="button" onclick="scanPile()" id="pileBtn" style="padding:12px 24px;background:linear-gradient(135deg,#eab308,#ca8a04);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;">
+        🔍 Skanuj stertę (OCR)
+      </button>
+    </div>
+    <small id="pileStatus" style="color:#64748b;">Wybierz zdjęcie sterty i uruchom skan.</small>
+  </div>
+
+  <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;">
+    <div class="card" style="flex:1;min-width:300px;">
+      <h4>Podgląd kamery górnej</h4>
+      <div id="pileWrap" style="position:relative;background:#e2e8f0;min-height:220px;text-align:center;border-radius:8px;overflow:hidden;">
+        <span id="pileText" style="line-height:220px;color:#64748b;">Brak zdjęcia sterty</span>
+        <img id="pilePreview" style="display:none;width:100%;height:auto;">
+      </div>
+    </div>
+    <div class="card" style="flex:1;min-width:300px;">
+      <h4>Odczytane dane (OCR)</h4>
+      <div id="ocrResult" style="margin-top:10px;color:#94a3b8;font-style:italic;">Brak wyników. Uruchom skan sterty.</div>
     </div>
   </div>
-  <div class="card" style="flex:1; min-width:300px;">
-    <h4>Wygenerowane wycinki MMS</h4>
-    <div id="mmsGallery" style="display:flex; flex-wrap:wrap; gap:12px; margin-top:10px;">
-      {% for n in recent_notifications %}
-        {% if n.mms_image %}
-          <div style="border:1px solid #cbd5e1; border-radius:8px; padding:8px; width:180px; background:#f8fafc;">
-            <img src="/omnipost-portal/office/mms-crop/{{ n.mms_image }}/" style="width:100%; height:110px; object-fit:cover; border-radius:4px;">
-            <div style="font-size:0.8rem; font-weight:600; margin-top:4px;">{{ n.letter.recipient }}</div>
-          </div>
-        {% endif %}
-      {% empty %}
-        <span style="color:#64748b; font-size:0.9rem;">Brak wygenerowanych wycinków MMS.</span>
-      {% endfor %}
+
+  <div class="card" style="margin-bottom:20px;">
+    <h4>🗂️ Archiwum zmian sterty</h4>
+    <div id="pileArchive" style="margin-top:10px;color:#94a3b8;font-style:italic;">Brak wpisów archiwum.</div>
+  </div>
+
+  <div class="card">
+    <h4>🔗 Konfiguracja trybu greckiego</h4>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="/admin/office/pilescan/" style="padding:10px 18px;background:#0f172a;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">📄 Skany sterty (OCR)</a>
+      <a href="/admin/office/pilearchiveentry/" style="padding:10px 18px;background:#334155;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">🗂️ Archiwum zmian</a>
+      <a href="/admin/office/archiveconfig/" style="padding:10px 18px;background:#b45309;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">⚙️ Okres archiwizacji</a>
     </div>
   </div>
+
 </div>
-<div id="devConsole" style="background:#0f172a; color:#38bdf8; font-family:monospace; padding:15px; border-radius:8px; max-height:220px; overflow-y:auto;">
+
+<!-- ===== WSPÓLNY TERMINAL AI ===== -->
+<div id="devConsole" style="background:#0f172a;color:#38bdf8;font-family:monospace;padding:15px;border-radius:8px;max-height:220px;overflow-y:auto;margin-top:20px;">
   <div style="color:#94a3b8;">&gt; Konsola Procesora AI gotowa.</div>
 </div>
 
 <script>
 const CSRF = '{{ csrf_token }}';
+const SHELF_ID = {{ shelf.id }};
+let currentMode = 'normal';
 
-function addLog(msg, type) {
-  const c = document.getElementById('devConsole');
-  const d = document.createElement('div');
-  d.style.marginTop = '4px';
-  d.style.color = type === 'error' ? '#ef4444' : (type === 'warn' ? '#f59e0b' : (type === 'success' ? '#10b981' : '#38bdf8'));
-  d.textContent = msg;
-  c.appendChild(d);
-  c.scrollTop = c.scrollHeight;
+function switchMode(mode){
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.mode-' + mode).classList.add('active');
+  document.getElementById('mode-' + mode).classList.add('active');
+  addLog('[MODE] ' + (mode === 'normal' ? 'Porządek Normalny — kamera frontowa (półki + bałagan)' : 'Porządek Grecki — kamera górna (sterta + OCR)'), 'info');
 }
 
-function saveConfig() {
-  fetch('/omnipost-portal/office/api/config/', {
-    method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
-    body: JSON.stringify({mode: document.getElementById('detMode').value, apn_url: document.getElementById('apnUrl').value, apn_token: document.getElementById('apnToken').value})
-  }).then(r => r.json()).then(res => addLog(res.status === 'ok' ? `[CONFIG] Tryb: ${res.mode.toUpperCase()}` : `[BŁĄD] ${res.message}`, res.status === 'ok' ? 'success' : 'error'));
+/* ===== TOASTY ===== */
+const CHANNELS = {
+  telegram:{icon:'✈️',title:'Telegram',cls:'t-telegram'},
+  mms:{icon:'📸',title:'MMS z miniaturą',cls:'t-mms'},
+  email:{icon:'✉️',title:'E-mail',cls:'t-email'},
+  voice_call:{icon:'📞',title:'Połączenie głosowe',cls:'t-voice_call'},
+  sms:{icon:'💬',title:'SMS',cls:'t-sms'},
+  chaos:{icon:'🗑️',title:'Bałagan → Administrator',cls:'t-chaos'},
+  ocr:{icon:'🔍',title:'OCR sterty',cls:'t-ocr'}
+};
+
+function showToast(channel, recipient, details, link){
+  const cfg = CHANNELS[channel] || CHANNELS.sms;
+  const t = document.createElement('div');
+  t.className = 'ai-toast ' + cfg.cls;
+  t.innerHTML = '<div class="ic">'+cfg.icon+'</div><div><div class="tt">'+cfg.title+'</div>'+
+    '<div class="tm"><strong>'+(recipient||'')+'</strong><br>'+(details||'')+'</div></div><div class="bar"></div>';
+  t.onclick = function(){ if(link) window.location.href = link; };
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(function(){ t.classList.add('hiding'); setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); },350); },5000);
 }
 
-function enqueuePhoto() {
-  const pid = document.getElementById('queuePhotoSelect').value;
-  if (!pid) { alert('Wybierz zdjęcie z listy!'); return; }
-  fetch('/omnipost-portal/office/api/queue/enqueue/', {
-    method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
-    body: JSON.stringify({photo_id: pid})
-  }).then(r => r.json()).then(res => { if (res.status === 'ok') location.reload(); });
+function channelFromText(txt){
+  const s=(txt||'').toLowerCase();
+  if(s.includes('telegram'))return 'telegram';
+  if(s.includes('mms'))return 'mms';
+  if(s.includes('mail'))return 'email';
+  if(s.includes('voice')||s.includes('call'))return 'voice_call';
+  return 'sms';
 }
 
-function resetQueue() {
-  fetch('/omnipost-portal/office/api/queue/reset/', {
-    method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF}
-  }).then(() => location.reload());
+function fireToasts(res){
+  let list = res.triggered_notifications;
+  if(!list || !list.length){
+    list = (res.db_logs||[]).map(function(l){ return {channel:channelFromText(l),recipient:'Pracownik',details:l}; });
+  }
+  (list||[]).forEach(function(n,i){ setTimeout(function(){ showToast(n.channel,n.recipient,n.details,n.url); }, i*220); });
 }
 
-function processNext() {
-  addLog('[QUEUE] Konfrontacja z bazą...', 'info');
-  fetch('/omnipost-portal/office/api/queue/process-next/', {
-    method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF}
-  }).then(r => r.json()).then(res => {
-    if (res.status !== 'ok') { addLog(`[UWAGA] ${res.message}`, 'warn'); return; }
-    addLog(`[SUKCES] ${res.message}`, 'success');
-    (res.db_logs || []).forEach(l => addLog(`[POWIADOMIENIE] ${l}`, 'success'));
-    const img = document.getElementById('previewResult');
-    const wrap = document.getElementById('wrapResult');
-    wrap.querySelectorAll('.yolo-box').forEach(e => e.remove());
-    img.onload = function() {
-      const sx = img.clientWidth / 1000.0, sy = img.clientHeight / 800.0;
-      (res.boxes || []).forEach(f => {
-        const b = document.createElement('div');
-        b.className = 'yolo-box';
-        b.style.cssText = `position:absolute; border:2px solid #ef4444; background:rgba(239,68,68,0.25); left:${Math.round(f.x*sx)}px; top:${Math.round(f.y*sy)}px; width:${Math.round(f.w*sx)}px; height:${Math.round(f.h*sy)}px; pointer-events:none;`;
+function demoToasts(){
+  [
+    {channel:'telegram',recipient:'Jan Kowalski',details:'Pismo polecone • termin za 1 dzień'},
+    {channel:'mms',recipient:'Anna Nowak',details:'Wysłano miniaturę przesyłki'},
+    {channel:'voice_call',recipient:'Maria Wójcik',details:'Przesyłka PRZETERMINOWANA'},
+    {channel:'chaos',recipient:'Administrator',details:'Obiekt poza strefą — zgłoszenie'},
+    {channel:'ocr',recipient:'Sterta pism',details:'Odczytano adresata i numer przesyłki'}
+  ].forEach(function(n,i){ setTimeout(function(){ showToast(n.channel,n.recipient,n.details); }, i*250); });
+}
+
+/* ===== TERMINAL ===== */
+function addLog(msg,type){
+  const c=document.getElementById('devConsole');
+  const d=document.createElement('div');
+  d.style.marginTop='4px';
+  d.style.color = type==='error'?'#ef4444':(type==='warn'?'#f59e0b':(type==='success'?'#10b981':'#38bdf8'));
+  d.textContent=msg; c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+
+/* ===== TRYB NORMALNY: kolejka ===== */
+function saveConfig(){
+  fetch('/omnipost-portal/office/api/config/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+    body:JSON.stringify({mode:document.getElementById('detMode').value,apn_url:document.getElementById('apnUrl').value,apn_token:document.getElementById('apnToken').value})
+  }).then(r=>r.json()).then(res=>addLog(res.status==='ok'?`[CONFIG] Tryb: ${res.mode.toUpperCase()}`:`[BŁĄD] ${res.message}`,res.status==='ok'?'success':'error'));
+}
+
+function enqueuePhoto(){
+  const pid=document.getElementById('queuePhotoSelect').value;
+  if(!pid){alert('Wybierz zdjęcie z listy!');return;}
+  fetch('/omnipost-portal/office/api/queue/enqueue/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+    body:JSON.stringify({photo_id:pid})}).then(r=>r.json()).then(res=>{if(res.status==='ok')location.reload();});
+}
+
+function resetQueue(){
+  fetch('/omnipost-portal/office/api/queue/reset/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF}}).then(()=>location.reload());
+}
+
+function processNext(){
+  addLog('[QUEUE] Konfrontacja z bazą...','info');
+  fetch('/omnipost-portal/office/api/queue/process-next/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF}})
+  .then(r=>r.json()).then(res=>{
+    if(res.status!=='ok'){addLog(`[UWAGA] ${res.message}`,'warn');return;}
+    addLog(`[SUKCES] ${res.message}`,'success');
+    (res.db_logs||[]).forEach(l=>addLog(`[POWIADOMIENIE] ${l}`,'success'));
+    fireToasts(res);
+    const img=document.getElementById('previewResult'), wrap=document.getElementById('wrapResult');
+    wrap.querySelectorAll('.yolo-box').forEach(e=>e.remove());
+    img.onload=function(){
+      const sx=img.clientWidth/1000.0, sy=img.clientHeight/800.0;
+      (res.boxes||[]).forEach(f=>{
+        const b=document.createElement('div'); b.className='yolo-box';
+        b.style.cssText=`position:absolute;border:2px solid #ef4444;background:rgba(239,68,68,.25);left:${Math.round(f.x*sx)}px;top:${Math.round(f.y*sy)}px;width:${Math.round(f.w*sx)}px;height:${Math.round(f.h*sy)}px;pointer-events:none;`;
         wrap.appendChild(b);
       });
     };
-    img.src = `/omnipost-portal/office/photo/${res.current_id}/?t=` + Date.now();
-    img.style.display = 'block';
-    document.getElementById('textResult').style.display = 'none';
-    const bImg = document.getElementById('baseImgPreview');
-    if (bImg) bImg.src = `/omnipost-portal/office/photo/${res.current_id}/?t=` + Date.now();
-  }).catch(e => addLog(`[BŁĄD] ${e}`, 'error'));
+    img.src=`/omnipost-portal/office/photo/${res.current_id}/?t=`+Date.now();
+    img.style.display='block';
+    document.getElementById('textResult').style.display='none';
+    const bImg=document.getElementById('baseImgPreview');
+    if(bImg) bImg.src=`/omnipost-portal/office/photo/${res.current_id}/?t=`+Date.now();
+  }).catch(e=>addLog(`[BŁĄD] ${e}`,'error'));
+}
+
+/* ===== TRYB NORMALNY: bałagan → Administrator ===== */
+function detectChaos(){
+  const btn=document.getElementById('chaosBtn'), status=document.getElementById('chaosStatus');
+  btn.disabled=true; btn.textContent='⏳ Skanowanie...';
+  status.textContent='Analiza obrazu...'; status.style.color='#eab308';
+  addLog('[CHAOS-INIT] Detekcja obiektów poza strefami pracowników...','info');
+
+  fetch('/omnipost-portal/office/api/detect-chaos/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+    body:JSON.stringify({shelf_id:SHELF_ID})})
+  .then(r=>r.json()).then(res=>{
+    btn.disabled=false; btn.textContent='🗑️ Wykryj bałagan poza strefami';
+    if(res.status!=='ok'){addLog('[CHAOS-ERROR] '+res.message,'error');status.textContent='Błąd: '+res.message;status.style.color='#ef4444';return;}
+    (res.ai_logs||[]).forEach(l=>addLog(l.msg, l.type==='warning'?'warn':(l.type==='success'?'success':'info')));
+    status.textContent=res.message;
+    status.style.color = res.chaos_reports && res.chaos_reports.length ? '#ef4444' : '#10b981';
+
+    const list=document.getElementById('chaosReportsList');
+    if(res.chaos_reports && res.chaos_reports.length){
+      list.innerHTML=res.chaos_reports.map(r=>`
+        <div style="background:#fef3c7;border-left:4px solid #eab308;padding:12px;border-radius:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div><strong style="color:#78350f;">🗑️ ${r.object_type}</strong>
+            <div style="font-size:.85rem;color:#713f12;margin-top:4px;">Pozycja: ${r.position} • Pewność: ${r.confidence} • ${r.status}</div></div>
+          <a href="/admin/office/chaosreport/${r.id}/change/" style="padding:6px 12px;background:#0f172a;color:#fff;text-decoration:none;border-radius:4px;font-size:.8rem;font-weight:600;">Zgłoszenie</a>
+        </div>`).join('');
+      (res.triggered_notifications||[]).forEach((n,i)=>setTimeout(()=>showToast('chaos',n.recipient,n.details,n.url), i*250));
+    } else {
+      list.innerHTML='<div style="background:#dcfce7;border-left:4px solid #10b981;padding:14px;border-radius:6px;color:#166534;font-weight:600;">✅ Brak obiektów poza strefami.</div>';
+    }
+  }).catch(e=>{
+    btn.disabled=false; btn.textContent='🗑️ Wykryj bałagan poza strefami';
+    addLog('[CHAOS-ERROR] '+e,'error'); status.textContent='Błąd połączenia'; status.style.color='#ef4444';
+  });
+}
+
+/* ===== TRYB GRECKI: sterta + OCR ===== */
+function scanPile(){
+  const pid=document.getElementById('pilePhotoSelect').value;
+  const btn=document.getElementById('pileBtn'), status=document.getElementById('pileStatus');
+  if(!pid){alert('Wybierz zdjęcie sterty z kamery górnej!');return;}
+
+  const img=document.getElementById('pilePreview');
+  img.src=`/omnipost-portal/office/photo/${pid}/?t=`+Date.now();
+  img.style.display='block';
+  document.getElementById('pileText').style.display='none';
+
+  btn.disabled=true; btn.textContent='⏳ OCR w toku...';
+  status.textContent='Wysyłanie do Gemini OCR...'; status.style.color='#eab308';
+  addLog('[PILE-INIT] Skan sterty z kamery górnej...','info');
+
+  fetch('/omnipost-portal/office/api/pile/scan/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+    body:JSON.stringify({photo_id:pid})})
+  .then(r=>{ if(r.status===404) throw new Error('Endpoint OCR nie jest jeszcze aktywny (kolejny krok wdrożenia).'); return r.json(); })
+  .then(res=>{
+    btn.disabled=false; btn.textContent='🔍 Skanuj stertę (OCR)';
+    if(res.status!=='ok'){addLog('[PILE-ERROR] '+res.message,'error');status.textContent='Błąd: '+res.message;status.style.color='#ef4444';return;}
+    (res.ai_logs||[]).forEach(l=>addLog(l.msg, l.type==='warning'?'warn':(l.type==='success'?'success':'info')));
+    status.textContent=res.message||'Skan zakończony.'; status.style.color='#10b981';
+
+    const items=res.items||[];
+    document.getElementById('ocrResult').innerHTML = items.length ? items.map(it=>`
+      <div style="background:#f0f9ff;border-left:4px solid #38bdf8;padding:12px;border-radius:6px;margin-bottom:8px;">
+        <strong style="color:#0369a1;">${it.recipient||'Nieznany adresat'}</strong>
+        <div style="font-size:.85rem;color:#334155;margin-top:4px;">
+          Nadawca: ${it.sender||'—'}<br>Nr przesyłki: ${it.tracking_number||'—'}<br>
+          Typ: ${it.document_type||'—'} • Data dokumentu: ${it.document_date||'—'}<br>
+          Wykryto: ${it.detected_at||'—'}
+        </div></div>`).join('')
+      : '<div style="color:#94a3b8;font-style:italic;">Nie odczytano żadnych danych.</div>';
+
+    const arch=res.archive||[];
+    document.getElementById('pileArchive').innerHTML = arch.length ? arch.map(a=>`
+      <div style="border-left:3px solid #cbd5e1;padding:8px 12px;margin-bottom:6px;font-size:.85rem;color:#334155;">
+        <strong>${a.timestamp}</strong> — ${a.change_type}: ${a.description}
+      </div>`).join('') : '<div style="color:#94a3b8;font-style:italic;">Brak nowych wpisów.</div>';
+
+    items.forEach((it,i)=>setTimeout(()=>showToast('ocr', it.recipient||'Sterta pism', (it.document_type||'Przesyłka')+' • '+(it.tracking_number||'brak nr'), '/admin/office/pilescan/'), i*250));
+  })
+  .catch(e=>{
+    btn.disabled=false; btn.textContent='🔍 Skanuj stertę (OCR)';
+    addLog('[PILE-ERROR] '+e.message,'error');
+    status.textContent=e.message; status.style.color='#ef4444';
+  });
 }
 </script>
 {% endblock %}

@@ -1,4 +1,4 @@
-﻿services:
+services:
   db:
     image: mariadb:10.11
     container_name: omnipost_db
@@ -19,6 +19,8 @@
       retries: 10
   web:
     build: .
+    env_file:
+      - .env 
     container_name: omnipost_web
     dns:
       - 8.8.8.8

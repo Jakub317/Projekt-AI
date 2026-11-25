@@ -34,6 +34,10 @@ class UploadedMaterial(models.Model):
         ("accepted", "Zaakceptowany"),
         ("rejected", "Odrzucony"),
     ]
+    CAMERA_CHOICES = [
+        ("front", "Kamera frontowa (półki)"),
+        ("top", "Kamera górna (sterta)"),
+    ]
 
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="materials"
@@ -41,6 +45,7 @@ class UploadedMaterial(models.Model):
     file = models.FileField(upload_to="uploads/%Y/%m/")
     original_name = models.CharField(max_length=255)
     material_type = models.CharField(max_length=16, choices=TYPE_CHOICES)
+    camera_source = models.CharField(max_length=20, choices=CAMERA_CHOICES, default="front", verbose_name="Źródło kamery")
     mime_type = models.CharField(max_length=128, blank=True)
     size_bytes = models.BigIntegerField()
     sha256 = models.CharField(max_length=64, db_index=True)
@@ -56,7 +61,7 @@ class UploadedMaterial(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.original_name} ({self.material_type}, {self.uploaded_by})"
+        return f"{self.original_name} ({self.material_type}, {self.camera_source}, {self.uploaded_by})"
 
 
 class AuditLog(models.Model):
@@ -74,6 +79,7 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.created_at:%Y-%m-%d %H:%M} {self.actor} {self.action}"
+
 
 class TrainingJob(models.Model):
     STATUS_CHOICES = [
